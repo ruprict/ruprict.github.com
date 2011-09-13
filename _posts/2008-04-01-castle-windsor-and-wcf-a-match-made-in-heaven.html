@@ -1,0 +1,157 @@
+--- 
+layout: post
+title: "Castle Windsor and WCF:  A Match Made in Heaven"
+tags: 
+- WCF
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1228269502"
+  _edit_last: "3307217"
+---
+<em>(Note:  I've been out for a bit due to new recent additions to my life.  The first was a (third) daughter born 2 weeks early and the second is an aggressive vasectomy schedule.  Too much information, you say?  I agree.)</em>
+
+If you've read any of my other posts, you know I dig Castle <a title="Windsor yumminess" href="http://www.castleproject.org/container/index.html" target="_blank">Windsor</a>.  It's cool and allows a "special" developer like me to look pretty smart without actually being all that smart.   I also really like <a title="WCF does it right" href="http://msdn2.microsoft.com/en-us/netframework/aa663324.aspx" target="_blank">WCF</a>, as I feel it lead the charge of "things Microsoft started getting right", again helping me look smart by abstracting all the <a class="zem_slink" title="List of Web service specifications" rel="wikipedia" href="http://en.wikipedia.org/wiki/List_of_Web_service_specifications">WS-*</a>** and other service gobblety-gook out of my life.  Since I REALLY like both of these technologies, I was hesitant to put them together, fearing I couldn't take the shear joy it would create.  However, <a title="The man, the legend" href="http://www.ayende.com" target="_blank">Ayende </a>and <a title="Finally, he blogs" href="http://blogs.hibernatingrhinos.com/Craig/Default.aspx" target="_blank">Craig </a>have created the WCF Facility, allowing me to register my services on the Windsor container, and thus use <a class="zem_slink" title="Dependency injection" rel="wikipedia" href="http://en.wikipedia.org/wiki/Dependency_injection">dependency injection</a> to handle all the stuff my services need.   This post is a (hopefully) quick "how to" on this really cool facility.
+
+<em>(Note: This is my first foray into using Binsor for Windsor Configuration.  All the smart guys were using it while I was still XMLing in the dark ages, so I had to follow suit.)</em>
+<h2>Step Uno:  Write a Service</h2>
+Let us create a simple WCF service.  It looks like:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof1252\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;\red43\green145\blue175;\red0\green0\blue255;\red163\green21\blue21;}??\fs20     [\cf3 ServiceContract\cf0 ()]\par ??    \cf4 public\cf0  \cf4 interface\cf0  \cf3 IService1\par ??\cf0     \{\par ??        [\cf3 OperationContract\cf0 ]\par ??        \cf4 string\cf0  MyOperation1(\cf4 string\cf0  myValue);\par ??        [\cf3 OperationContract\cf0 ]\par ??        \cf4 void\cf0  ThrowError();\par ??    \}\par ??\par ??    \cf4 public\cf0  \cf4 class\cf0  \cf3 Service1\cf0  : \cf3 IService1\par ??\cf0     \{\par ??        \cf4 private\cf0  \cf3 ILogger\cf0  logger;\par ??        \cf4 public\cf0  \cf3 ILogger\cf0  Logger\par ??        \{\par ??            \cf4 get\cf0  \{ \cf4 return\cf0  logger; \}\par ??            \cf4 set\cf0  \{ logger = \cf4 value\cf0 ; \}\par ??        \}\par ??\cf4         #region\cf0  IService1 Members\par ??        \cf4 public\cf0  \cf4 string\cf0  MyOperation1(\cf4 string\cf0  myValue)\par ??        \{\par ??            logger.Info(\cf5 "MyOperation1 called with \{0\}"\cf0 ,myValue);\par ??            \cf4 return\cf0  \cf5 "Hello: "\cf0  + myValue;\par ??        \}\par ??        \cf4 public\cf0  \cf4 void\cf0  ThrowError()\par ??        \{\par ??            \cf4 throw\cf0  \cf4 new\cf0  \cf3 Exception\cf0 (\cf5 "AAAAAAH!"\cf0 );\par ??        \}\par ??\cf4         #endregion\par ??\cf0     \}} -->
+<div style="background:white none repeat scroll 0 50%;font-family:Courier New;font-size:10pt;color:black;">
+<p style="margin:0;"><span style="color:#2b91af;"> </span>[<span style="color:#2b91af;">ServiceContract</span>()]</p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">public</span> <span style="color:blue;">interface</span> <span style="color:#2b91af;">IService1</span></p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span>{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>[<span style="color:#2b91af;">OperationContract</span>]</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">string</span> MyOperation1(<span style="color:blue;">string</span> myValue);</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>[<span style="color:#2b91af;">OperationContract</span>]</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">void</span> ThrowError();</p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span>}</p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span></p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">Service1</span> : <span style="color:#2b91af;">IService1</span></p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span>{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">private</span> <span style="color:#2b91af;">ILogger</span> logger; //Yes, yes, should init to a NullInstance.</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">public</span> <span style="color:#2b91af;">ILogger</span> Logger</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">get</span> { <span style="color:blue;">return</span> logger; }</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">set</span> { logger = <span style="color:blue;">value</span>; }</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>}</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">#region</span> IService1 Members</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">public</span> <span style="color:blue;">string</span> MyOperation1(<span style="color:blue;">string</span> myValue)</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;"> </span>logger.Info(<span style="color:#a31515;">"MyOperation1 called with {0}"</span>,myValue);</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">return</span> <span style="color:#a31515;">"Hello: "</span> + myValue;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>}</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">public</span> <span style="color:blue;">void</span> ThrowError()</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">throw</span> <span style="color:blue;">new</span> <span style="color:#2b91af;">Exception</span>(<span style="color:#a31515;">"AAAAAAH!"</span>);</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>}</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">#endregion</span></p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span>}</p>
+
+</div>
+So, you see the service contract, you see the implementation.  Please notice the following details:
+<ul>
+	<li>I added an ILogger property.  This is a dependency.</li>
+	<li>There is a method that just ralphs an error.  Usually I am not as obvious with my errors, but at least I will be able to debug this one.</li>
+</ul>
+Usually, at this point, you'd open up the web.config file and start writing mountains of &lt;service&gt; tags and &lt;behaviors&gt; and all that.  We aren't going to do that.  We are going to bring in Windsor to take care of all our needs.  Yay!
+<h2>Bring in da Noise, Bring in da Windsor</h2>
+I am going to presume that you, the reader, knows about Windsor and, at least at a high level, how to configure it.  Basically, for a web app (we are gonna host our services in IIS) you need to:
+<ul>
+	<li>Write the configuration files for Windsor, consisting of properties, facilities, and components.  Go read the castleproject.org site for some decent examples.</li>
+	<li>Register the container at startup.</li>
+</ul>
+As I stated previously, I am using <a title="BOO!  It's Windsor Config!" href="http://www.ayende.com/Blog/archive/2007/10/25/Binsor-2.0.aspx" target="_blank">Binsor</a> to write my config files.  (Tangent:  I need to learn Boo.  Ayende, is that book done yet?)  Here goes:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof1252\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;}??\fs20 import System;\par ??import System.Reflection\par ??import System.ServiceModel\par ??import System.ServiceModel.Description from System.ServiceModel\par ??import Castle.Facilities.Logging\par ??import Castle.Facilities.WcfIntegration\par ??import Ruprict.Grok.Castle.WcfIntegration.Core\par ??\par ??\par ??facility LoggingFacility: \par ??\tab loggingApi = LoggerImplementation.Log4net\par ??\tab configFile = 'log4net.config'\par ??\par ??facility WcfFacility\par ??\par ??component 'windsor.service', IService1, Service1:\par ??    ServiceModel = WcfServiceModel().Hosted() \\\par ??        .AddEndpoints(WcfEndpoint.BoundTo(BasicHttpBinding()))\par ??\par ??component 'error.handler',IServiceBehavior, LogExceptionHandler\par ??\par ??component 'metadata.behavior',IServiceBehavior, ServiceMetadataBehavior:\par ??\tab HttpGetEnabled = true} -->
+<div style="background:white none repeat scroll 0 50%;font-family:Courier New;font-size:10pt;color:black;">
+<p style="margin:0;">import System;</p>
+<p style="margin:0;">import System.Reflection</p>
+<p style="margin:0;">import System.ServiceModel</p>
+<p style="margin:0;">import System.ServiceModel.Description from System.ServiceModel</p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span>import Castle.Facilities.Logging</p>
+<p style="margin:0;">import Castle.Facilities.WcfIntegration</p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span>import Ruprict.Grok.Castle.WcfIntegration.Core</p>
+<p style="margin:0;"></p>
+<p style="margin:0;">facility LoggingFacility:</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>loggingApi = LoggerImplementation.Log4net</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>configFile = 'log4net.config'</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span></p>
+<p style="margin:0;"></p>
+<p style="margin:0;">facility WcfFacility</p>
+<p style="margin:0;"></p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span></p>
+<p style="margin:0;"></p>
+<p style="margin:0;">component 'windsor.service', IService1, Service1:</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>ServiceModel = WcfServiceModel().Hosted() \</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>.AddEndpoints(WcfEndpoint.BoundTo(BasicHttpBinding()))</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span></p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="margin:0;">component 'error.handler',IServiceBehavior, LogExceptionHandler</p>
+<p style="margin:0;"></p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span></p>
+<p style="margin:0;"></p>
+<p style="margin:0;">component 'metadata.behavior',IServiceBehavior, ServiceMetadataBehavior:</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>HttpGetEnabled = true</p>
+
+</div>
+This is Binsor 2.0 syntax, which is (from what I understand) yummier than ever.  I do like it.  It's compact and readable and I don't end up getting errors b/c I forgot to close a tag.  Looking at the import statements, you see I bring in whatever namespaces I need, including my service namespace and any of it's dependencies.   Here, I've yanked in the ServiceModel stuff from WCF so I can hook up my IServiceBehavior extension classes, as well as some other Castle Facility namespaces (namely, the Logging facility).  Then, I start defining things.  I grab the LoggingFacility from Castle, telling it I am using Log4Net and pointing it at the right config file.  Then it's on to the star of our show, the WcfFacility.  It seems odd that it just takes two words to bring in a facility that does so much.  Ahh, simplicity, you are truly beautiful.  Anyhoo, the first component is my WCF service (line 16) where you can see that I add a singular endpoint, bound to the BasicHttpBinding, um, binding. (NOTE: If you are using the BasicHttpBinding, like I am here, you don't even have to specify a service model, as the facility will deduce it from the base address.)  Finally, I add 2 more components, both IServiceBehaviors.  For those that don't know, IServiceBehavior is a way to extend WCF by create custom service (there are also endpoint and operation behaviors, all of which are treated the same by the WcfFacility) behaviors.  In our example, I have created a LogExceptionHandler that will log errors to a log file.  I also used a WCF core service behavior, ServiceMetatadataBehavior so I can use an HTTP GET to look at the service WSDL.
+
+With the configuration defined, we have to get our IIS web app to use it, right?  That's done in the Global.asax by putting some code in the HttpApplication.Application_Start event.
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof1252\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;\red0\green0\blue255;\red43\green145\blue175;\red163\green21\blue21;}??\fs20  \cf3 public\cf0  \cf3 class\cf0  \cf4 Global\cf0  : \cf4 HttpApplication\cf0 , \cf4 IContainerAccessor\par ??\cf0     \{\par ??        \cf3 private\cf0  \cf3 static\cf0  \cf4 IWindsorContainer\cf0  container;\par ??        \cf3 protected\cf0  \cf3 void\cf0  Application_Start(\cf3 object\cf0  sender, \cf4 EventArgs\cf0  e)\par ??        \{\par ??            container = \cf3 new\cf0  \cf4 WindsorContainer\cf0 ().Install(\cf4 BinsorScript\cf0 .FromFile(\cf5 "windsor.boo"\cf0 ));\par ??        \}\par ??        \cf3 protected\cf0  \cf3 void\cf0  Application_End(\cf3 object\cf0  sender, \cf4 EventArgs\cf0  e)\par ??        \{\par ??            container.Dispose();\par ??        \}\par ??\par ??\cf3         #region\cf0  IContainerAccessor Members\par ??\par ??        \cf3 public\cf0  \cf4 IWindsorContainer\cf0  Container\par ??        \{\par ??            \cf3 get\cf0  \{ \cf3 return\cf0  container; \}\par ??        \}\par ??\par ??\cf3         #endregion\par ??\cf0     \}} -->
+<div style="background:white none repeat scroll 0 50%;font-family:Courier New;font-size:10pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">Global</span> : <span style="color:#2b91af;">HttpApplication</span>, <span style="color:#2b91af;">IContainerAccessor</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span><span style="color:blue;">private</span> <span style="color:blue;">static</span> <span style="color:#2b91af;">IWindsorContainer</span> container;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">protected</span> <span style="color:blue;">void</span> Application_Start(<span style="color:blue;">object</span> sender, <span style="color:#2b91af;">EventArgs</span> e)</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;"> </span>container = <span style="color:blue;">new</span> <span style="color:#2b91af;">WindsorContainer</span>().Install(<span style="color:#2b91af;">BinsorScript</span>.FromFile(<span style="color:#a31515;">"windsor.boo"</span>));</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>}</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">protected</span> <span style="color:blue;">void</span> Application_End(<span style="color:blue;">object</span> sender, <span style="color:#2b91af;">EventArgs</span> e)</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span>{</p>
+<p style="padding-left:60px;margin:0;">container.Dispose();</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span></p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">#region</span> IContainerAccessor Members</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:#2b91af;">IWindsorContainer</span> Container</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">get</span> { <span style="color:blue;">return</span> container;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;"> </span></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">#endregion</span></p>
+<p style="margin:0;">}</p>
+
+</div>
+That single line in Application_Start tells Windsor that I am using Binsor and the name of my config file.  Gorgeous!
+
+Now, in order to host a WCF service in IIS, you need a .svc file as an endpoint, and (usually) web.config configuration sections out the yin-yang. We still need the former, pointing it to our WindsorServiceHostFactory and using the name from our Binsor config file.
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof1252\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;}??\fs20 &amp;lt;%@ServiceHost Language="C#"\par ??Service="windsor.service" Factory="Castle.Facilities.WcfIntegration.WindsorServiceHostFactory" \par ??%&amp;gt;} -->
+<div style="background:white none repeat scroll 0 50%;font-family:Courier New;font-size:10pt;color:black;">
+<p style="margin:0;">&lt;%@ServiceHost Language="C#"</p>
+<p style="margin:0;">Service="windsor.service" Factory="Castle.Facilities.WcfIntegration.WindsorServiceHostFactory"</p>
+<p style="margin:0;">%&gt;</p>
+
+</div>
+Now, when we crank up the application, the Windsor Container will attach the IServiceBehaviors in the config to our services, automatically wiring up my LogExceptionHandler and ServiceMetadataBehavior.  This is especially sexy when you have multiple services in a single application and they ALL get the behaviors.  Furthermore, since my service has an ILogger property (remember that?) and I am also using the LogFacility, it will create my Log4Net logger and give my service an instance.  POW! BLAM! KABLOOEY!  This is how we do it.
+
+I was going to put some examples of the service getting called using <a title="Not a bad little toy" href="http://www.codeproject.com/KB/WCF/WCF35Utils.aspx" target="_blank">WcfTestClient.exe </a>(free with .NET 3.5) so you could see my error behavior doing it's thang as well as prove to you that we don't need no stinking web.config  sections, but I find them superfluous in a post that already is larger than I wanted it to be.  If you have more questions, hit me with a comment.
+
+So, in summary, the keypoints here are:
+<ul>
+	<li>Windsor rocks, and the WcfFacility is all that and a bag  of chips.</li>
+	<li>You can have web.config &lt;service&gt; section-less WCF services, complete with auto-wired behaviors and dependencies.</li>
+	<li>Ayende and Craig are really, really smart.</li>
+</ul>
+<h2>More Examples</h2>
+These two posts (<a title="Post1" href="http://groups.google.com/group/castle-project-devel/browse_thread/thread/4e5a5a87bab79f7/dac9b6f338bf4773?lnk=gst&amp;q=wcf#dac9b6f338bf4773" target="_blank">here </a>and <a title="Post 2" href="http://groups.google.com/group/castle-project-devel/browse_thread/thread/4435ad57f89e61a5" target="_blank">here</a>) in the Castle Dev Google Group go through some more examples from Craig.  You'll even get to see me asking very basic questions.  Also, Craig has promised he will post some stuff focusing on the client side of things, which should be very interesting.
+
+Update: Another, example of the newer (2008/12/02) stuff <a href="http://mikehadlow.blogspot.com/2008/11/windsor-wcf-integration.html" target="_blank">here</a>.
+<div class="zemanta-pixie" style="margin-top:10px;height:15px;"><a class="zemanta-pixie-a" title="Zemified by Zemanta" href="http://reblog.zemanta.com/zemified/68b07ea9-750f-4ed6-a6f5-4ed8f2d56f00/"><img class="zemanta-pixie-img" style="border:medium none;float:right;" src="http://img.zemanta.com/reblog_e.png?x-id=68b07ea9-750f-4ed6-a6f5-4ed8f2d56f00" alt="Reblog this post [with Zemanta]" /></a></div>

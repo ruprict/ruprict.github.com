@@ -1,0 +1,136 @@
+--- 
+layout: post
+title: "The Bitter Coder Tutorials, Binsor Style: Part IX, Constructor Injection"
+tags: 
+- Binsor
+- Castle
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1219670422"
+---
+Previous posts in the series:
+<ul>
+	<li><a href="http://ruprict.wordpress.com/2008/07/11/the-bitter-coder-tutorials-binsor-style/" target="_blank">Part 1</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/12/the-bitter-coder-tutorials-binsor-style-arrays/" target="_blank">Part 2</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/14/the-bitter-coder-tutorials-binsor-style-iii-dictonaries/" target="_blank">Part 3</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/16/the-bitter-coder-tutorials-binsor-style-iv-switching-configs/" target="_blank">Part 4</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/28/the-bitter-coder-tutorial-binsor-style-v-configuration-parameters/" target="_blank">Part 5</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/08/04/the-bitter-coder-tutorials-binsor-style-vi-switching-lifestyles/" target="_blank">Part 6</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/08/11/the-bitter-coder-tutorials-binsor-style-vii-switching-implementations/" target="_blank">Part 7</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/08/18/the-bitter-coder-tutorials-viii-referencing-instances-by-key/" target="_blank">Part 8</a></li>
+</ul>
+<a href="http://blog.bittercoder.com/PermaLink,guid,6ce3f22e-763e-445c-9b96-1ca8e6116c34.aspx" target="_blank">Part 9</a> of the original series focuses in on Constructor Injection, which is one method of doing Dependency Injection (the other is Setter Injection, which we'll get to)   The reason to use Constructor or Setter Injection is a bit subjective, but (to me) boils down to if you the paramters to be mandatory and how many parameters you have.  We're not here to debate, though, we're here to copy Alex's hard work....
+
+Here's the interface Alex defines;
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;}??\fs20 \cf1 public\cf0  \cf1 interface\cf0  \cf4 IEncoder\par ??\cf0     \{\par ??        \cf1 string\cf0  Encode(\cf1 string\cf0  source);\par ??    \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">interface</span> <span style="color:#2b91af;">IEncoder</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">string</span> Encode(<span style="color:blue;">string</span> source);</p>
+<p style="margin:0;">}</p>
+
+</div>
+And the two encoders:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;}??\fs20 \cf1 public\cf0  \cf1 class\cf0  \cf4 NullEncoder\cf0 :\cf4 IEncoder\par ??\cf0     \{\par ??        \cf1 public\cf0  \cf1 string\cf0  Encode(\cf1 string\cf0  source)\par ??        \{\par ??            \cf1 return\cf0  source;\par ??        \}\par ??    \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">NullEncoder</span>:<span style="color:#2b91af;">IEncoder</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">string</span> Encode(<span style="color:blue;">string</span> source)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">return</span> source;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;\red0\green0\blue255;\red43\green145\blue175;\red163\green21\blue21;}??\fs20     \cf3 public\cf0  \cf3 class\cf0  \cf4 SillyEncoder\cf0 :\cf4 IEncoder\par ??\cf0     \{\par ??        \cf3 private\cf0  \cf3 char\cf0 [] _mixedUp = \cf5 "YACBDFEGIHJLKMONPRSQTUWVXZ"\cf0 .ToCharArray();\par ??        \cf3 public\cf0  \cf3 string\cf0  Encode(\cf3 string\cf0  source)\par ??        \{\par ??            \cf3 string\cf0  upperSource = source.ToUpper();\par ??            \cf3 char\cf0 [] encoded = \cf3 new\cf0  \cf3 char\cf0 [source.Length];\par ??            \cf3 for\cf0  (\cf3 int\cf0  i = 0; i &lt; encoded.Length; i++)\par ??            \{\par ??                encoded[i] = MapCharacter(upperSource[i]);\par ??            \}\par ??            \cf3 return\cf0  \cf3 new\cf0  \cf3 string\cf0 (encoded);\par ??        \}\par ??\par ??        \cf3 private\cf0  \cf3 char\cf0  MapCharacter(\cf3 char\cf0  ch)\par ??        \{\par ??            \cf3 if\cf0  ((ch &gt;= \cf5 'A'\cf0 ) &amp;&amp; (ch &lt;= \cf5 'Z'\cf0 ))\par ??            \{\par ??                \cf3 return\cf0  _mixedUp[ch - \cf5 'A'\cf0 ];\par ??            \}\par ??            \cf3 return\cf0  ch;\par ??        \}\par ??    \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">SillyEncoder</span>:<span style="color:#2b91af;">IEncoder</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">char</span>[] _mixedUp = <span style="color:#a31515;">"YACBDFEGIHJLKMONPRSQTUWVXZ"</span>.ToCharArray();</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">string</span> Encode(<span style="color:blue;">string</span> source)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">string</span> upperSource = source.ToUpper();</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">char</span>[] encoded = <span style="color:blue;">new</span> <span style="color:blue;">char</span>[source.Length];</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">for</span> (<span style="color:blue;">int</span> i = 0; i &lt; encoded.Length; i++)</p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;">encoded[i] = MapCharacter(upperSource[i]);</p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">return</span> <span style="color:blue;">new</span> <span style="color:blue;">string</span>(encoded);</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:60px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">char</span> MapCharacter(<span style="color:blue;">char</span> ch)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">if</span> ((ch &gt;= <span style="color:#a31515;">'A'</span>) &amp;&amp; (ch &lt;= <span style="color:#a31515;">'Z'</span>))</p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;"><span style="color:blue;">return</span> _mixedUp[ch - <span style="color:#a31515;">'A'</span>];</p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">return</span> ch;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+Let's check out the binsor:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;}??\fs20 component "null.encoder", IEncoder, NullEncoder\par ??\par ??component "silly.encoder", IEncoder, SillyEncoder\par ??\par ??component "message.sender", SecretMessageSender:\par ??\tab _from="ruprict@wordpress.com"\par ??\tab _encoder=@silly.encoder} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;">component "null.encoder", IEncoder, NullEncoder</p>
+<p style="margin:0;"></p>
+<p style="margin:0;"></p>
+<p style="margin:0;">component "silly.encoder", IEncoder, SillyEncoder</p>
+<p style="margin:0;"></p>
+<p style="margin:0;"></p>
+<p style="margin:0;">component "message.sender", SecretMessageSender:</p>
+<p style="padding-left:30px;margin:0;">_from="ruprict@wordpress.com"</p>
+
+</div>
+Notice we didn't specify a value for the "_encoder" parameter, so Windsor will just plug in the first one it finds.  And, finally, the Program:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 public\cf0  \cf1 static\cf0  \cf1 void\cf0  Step9()\par ??        \{\par ??            \cf1 var\cf0  sender = container.Resolve&lt;\cf4 SecretMessageSender\cf0 &gt;();\par ??            sender.SendMessage(\cf5 "hammett"\cf0 ,\cf5 "Howzit going at Microsoft?"\cf0 );\par ??\par ??        \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;}??\fs20 \cf1 private\cf0  \cf1 static\cf0  \cf1 void\cf0  Main(\cf1 string\cf0 [] args)} --></p>
+
+<div style="background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">static</span> <span style="color:blue;">void</span> Main(<span style="color:blue;">string</span>[] args)</p>
+
+</div>
+<p style="margin:0;"></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">var</span> sender = container.Resolve&lt;<span style="color:#2b91af;">SecretMessageSender</span>&gt;();</p>
+<p style="padding-left:30px;margin:0;">sender.SendMessage(<span style="color:#a31515;">"hammett"</span>,<span style="color:#a31515;">"Howzit going at Microsoft?"</span>);</p>
+<p style="margin:0;"></p>
+<p style="margin:0;">}</p>
+
+</div>
+Running this as is, gives us:
+
+<strong>to: hammett
+from: ruprict@wordpress.com</strong>
+
+<strong>GOWZIQ EOIME YQ KICROSOFQ?
+</strong>
+
+So, what if we want to send an unencrypted message?  Well, we can specify which IEncoder component to wire to our sender, like so:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;}??\fs20 component "message.sender", SecretMessageSender:\par ??\tab _from="ruprict@wordpress.com"\par ??\tab _encoder=@null.encoder} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;">component "message.sender", SecretMessageSender:</p>
+<p style="padding-left:30px;margin:0;">_from="ruprict@wordpress.com"</p>
+<p style="padding-left:30px;margin:0;">_encoder=@null.encoder</p>
+
+</div>
+See?  We refer to it by the name we gave the component.  Running it now, gives us:
+
+<strong>to: hammett
+from: ruprict@wordpress.com</strong>
+
+<strong>Howzit going at Microsoft?</strong>
+
+(I bet he's doing great...)
+
+Setter injection...coming up!

@@ -1,0 +1,146 @@
+--- 
+layout: post
+title: "ArcGIS Server 9.3 First Looks, Part 2: Virtual Earth Adapter"
+tags: 
+- ArcGIS Server
+- Dojo
+- JSON
+- REST
+- Virtual Earth
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1221065566"
+---
+We are using the <a class="zem_slink" title="Microsoft Virtual Earth" rel="wikipedia" href="http://en.wikipedia.org/wiki/Microsoft_Virtual_Earth" target="_blank">Virtual Earth</a> Tile Server that Dave Bouwman created which publishes tiles from <a class="zem_slink" title="ArcGIS Server" rel="wikipedia" href="http://en.wikipedia.org/wiki/ArcGIS_Server" target="_blank">ArcGIS Server</a> services to Virtual Earth.  It is a danged neato peace of software, and combined with the ArcDeveloper REST API, gives us a great option for exposing ArcGIS Server services.  In fact, it's such a great option that <a class="zem_slink" title="ESRI" rel="homepage" href="http://www.esri.com/" target="_blank">ESRI</a> has made it a core offering, providing adapters for <a class="zem_slink" title="Google Maps" rel="homepage" href="http://maps.google.com" target="_blank">Google Maps</a> and Virtual Earth along with the new REST API at 9.3.  This post focuses on the Virtual Earth adapter, although I am guessing it is not functionally different from the Google Maps adapter.
+
+When I heard about the javascript and REST APIs coming in 9.3, I was very excited.  I proclaimed the end of all pain in the GIS nerd world, just knowing that these new offerings would not only make my applications better, but they would make me a better person.  They would help me easily query my GIS data and teach my kids right from wrong.
+
+My expectations may have been a bit too high.
+
+Here are some things that I didn't know about the VE Adapter.  They may be obvious to some, but I was mildly surprised to hear them:
+<ul>
+	<li>You HAVE to use a tile cache to use the VE adapter.  Yes, I know it isn't that surprising, but I had some hope that we could display live services.  Yes, I know it would be slow, but sometimes hope blinds a man...</li>
+	<li>You HAVE to use the WGS84 Web Mercator GCS, which is not a requirement of Dave B's tile server (score one for Dave, open source, and little people everywhere)</li>
+	<li>The ArcGIS Server REST API supports JSONP out-of-the-box.  All you have to do is add a 'callback' parameter to your querystring and it'll return the <a class="zem_slink" title="JSON" rel="wikipedia" href="http://en.wikipedia.org/wiki/JSON" target="_blank">JSON</a> all nicely wrapped in the javascript function you specify.  That is very, very nice.</li>
+</ul>
+You can use the 'cache-on-demand' feature, which is a godsend to those of us who have watched cache generation processes leak into 3 weeks.
+
+So, real quick like, I'll crank out some code that shows you to query the REST API to get all the available map services, add them to your page.  Then, just because I am freaking crazy, we'll add the ability to toggle the tile layers on/off on your VE map.
+<h3>Setup</h3>
+First, get ArcGIS Server 9.3.  Then, publish a couple of map services per the requirements of using the VE adapter.  I mention most of it above, but <a href="http://resources.esri.com/help/9.3/arcgisserver/apis/javascript/ve/help/Working%20with%20ArcGIS%20Server%20services/CreatingServices.htm" target="_blank">here it is from the horse's mouth</a>.  Oh, and it'll help if the map services have data from the same area.
+<h3>Make a VE Map</h3>
+Create an HTML file (doesn't even have to be served by a web server, since we're all in javascript) and put in the base structure for a map.  Something like:
+
+[sourcecode language='html']
+
+<html>
+<head>
+<!-- Virtual Earth API -->
+<script src="http://dev.virtualearth.net/mapcontrol/mapcontrol.ashx?v=6" type="text/javascript"></script>
+<!-- ESRI VE ADapter -->
+<script src="http://serverapi.arcgisonline.com/jsapi/ve/?v=1" type="text/javascript"><!--mce:1--></script>
+<!-- DOJO from AOL CDN -->
+<script type="text/javascript" src="http://o.aolcdn.com/dojo/1.1.1/dojo/dojo.xd.js"></script>
+
+<script language="javascript" type="text/javascript" >
+ var map = null;
+ var layerFactory;
+ function OnPageLoad() {
+            var centerat = new VELatLong(45.5852, -122.5951); //Replace this with your center
+            map = new VEMap('mymap');
+            map.LoadMap(centerat,12,VEMapStyle.Aerial ,false);
+	    layerFactory= new ESRI.ArcGIS.VE.ArcGISLayerFactory();
+ }
+ dojo.addOnLoad(OnPageLoad);
+</script>
+
+<body>
+  <div id='mymap' style="position:relative;height:400px;width:600px;float:left;"></div>
+  <ul id="services"></ul></body>
+</html>
+[/sourcecode]
+
+So, a couple of quick comments about this "base" VE map.  I have added the script tags to pull in the ESRI VE adapter, as well as Dojo.  I am gonna use Dojo for this example because it makes querying a cross-domain REST service easy as 1,2,3.  It is likely that your AGS installation will not be on the same server or in the same domain as your web server, so it is nice that AGS 9.3 has JSONP baked right in.  Also, in the above code, I create a ESRI layer factory, which is an object that creates tile specifications for Virtual Earth.  Finally, I add an unordered list (ul) that will eventually hold my services.
+
+Ideally, we'd like to boogie out and get the list of services that are currently being published by AGS when the page loads.  So, lets add a getServices() method and call it from our OnPageLoad...shall we?
+
+[sourcecode language='jscript']
+
+var AGS_SERVER="http://yourserver/arcgis/rest/services";
+
+function getServices(){
+        dojo.io.script.get({
+                url:AGS_SERVER,
+                content:{
+                    f:'json'
+                },
+                load:function(resp){
+                    services=resp.services; // Automatically deserialized by dojo.  Thanks!
+                    var ulServ=dojo.byId('services');
+                    dojo.forEach(services,function(s){
+
+                            if (s.type=="MapServer"){
+                                var li = document.createElement("ul");
+                                li.innerHTML=s.name;
+                                ulServ.appendChild(li);
+                                dojo.connect(li,"onclick",dojo.hitch(li,serviceClick));
+                            }
+                    }
+                    );
+
+                },
+                callbackParamName:'callback'
+
+        });
+
+    }
+
+[/sourcecode]
+
+Here is where using Dojo (or any javascript framework that will handle JSONP requests easily) really pays off.  The getServices method is simply issuing an AJAX request to our AGS REST Service Catalog.  The response is automatically deserialized into JSON and fed to our 'load' function.  The load function then loops over each service (the response has folders in it too, but we are ignoring those today) and adds a list item to our services list for each MapServer.  A click handler is added to each list item to call our serviceClick function (we haven't added that yet).  Side note:  Using dojo.hitch here forces the serviceClick method to be called in the context of the list item that is clicked. In other words, when serviceClick is called, the 'this' keyword will refer to the list item.  A whole lotta stuff happening on one line of code, which is one place  where I think Dojo shines.
+
+So, let's quickly add the serviceClick (and some other) function:
+
+[sourcecode language='jscript']
+
+function serviceClick(){
+        var lyr= map.GetTileLayerByID(this.innerHTML);
+        if (lyr==null)
+        {
+            addLayer(this.innerHTML);
+        }
+        else
+        {
+            toggleLayer(this.innerHTML);
+        }
+
+    }
+    function addLayer(lyrName){
+
+        layerFactory.CreateLayer(AGS_SERVER+"/"+lyrName+"/MapServer", lyrName,GetMap);
+
+    }
+    function toggleLayer(lyrName){
+
+        var lyr=map.GetTileLayerByID(lyrName);
+        if (lyr.IsVisible)
+            map.HideTileLayer(lyrName);
+        else
+            map.ShowTileLayer(lyrName);
+
+    }
+    function GetMap(tileSourceSpec, resourceInfo) {
+
+        map.AddTileLayer(tileSourceSpec,true);
+
+    }
+
+[/sourcecode]
+
+So, the serviceClick function gets the innerHTML from the list item clicked, which in this case is the name of the AGS service.  It then checks our Virtual Earth map to see if that layer has been added.  If the layer has not been added, we use the layer factory created on page load to create a tile specification for that service.  The layer factory actually issues an AJAX request, which is why we have to specify a callback method (GetMap).  GetMap adds the created tile spec to the map, and our layer is visible.  Clicking on the service name in the list again will toggle that layer off.  So, with very little code, we've created a pretty functional map with a nice VE interface and a poor man's table-of-contents.  Not bad for a few minutes work.
+
+As usual, this post has gone on longer than I'd hoped.  If you want the not-split-up-by-the-blog-post HTML file, just drop me a comment.  Also, drop a comment if you have a question or think I am wrong/high/crazy.
+<div class="zemanta-pixie" style="width:100%;margin:5px 0;"><a class="zemanta-pixie-a" title="Zemified by Zemanta" href="http://www.zemanta.com/"><img class="zemanta-pixie-img" style="border:medium none;float:right;" src="http://img.zemanta.com/pixie.png?x-id=0354114a-815a-497c-bbd8-e77ff64f18fd" alt="" /></a></div>

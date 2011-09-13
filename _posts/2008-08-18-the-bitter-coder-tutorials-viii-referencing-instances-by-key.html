@@ -1,0 +1,82 @@
+--- 
+layout: post
+title: "The Bitter Coder Tutorials VIII: Referencing Instances By Key"
+tags: 
+- Binsor
+- Castle
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1219077490"
+  _edit_last: "3307217"
+---
+Previous posts in the series:
+<ul>
+	<li><a href="http://ruprict.wordpress.com/2008/07/11/the-bitter-coder-tutorials-binsor-style/" target="_blank">Part 1</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/12/the-bitter-coder-tutorials-binsor-style-arrays/" target="_blank">Part 2</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/14/the-bitter-coder-tutorials-binsor-style-iii-dictonaries/" target="_blank">Part 3</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/16/the-bitter-coder-tutorials-binsor-style-iv-switching-configs/" target="_blank">Part 4</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/28/the-bitter-coder-tutorial-binsor-style-v-configuration-parameters/" target="_blank">Part 5</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/08/04/the-bitter-coder-tutorials-binsor-style-vi-switching-lifestyles/" target="_blank">Part 6</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/08/11/the-bitter-coder-tutorials-binsor-style-vii-switching-implementations/" target="_blank">Part 7</a></li>
+</ul>
+In <a href="http://blog.bittercoder.com/PermaLink,guid,02f909e1-b680-4401-b8ff-a2fa98a0aea4.aspx" target="_blank">tutorial #8</a>, Alex continues down his path of switching implementations around, but this time we are going to have multiple components that implement the same contract, and we'll specify which one we want by id.  The id we are talking about is the id we gave the component when we registered it with Windsor.  Enough blah, blah, onto the code.
+
+Here's our class to read a file:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;}??\fs20 \cf1 public\cf0  \cf1 class\cf0  \cf4 FileReader\par ??\cf0     \{\par ??        \cf1 public\cf0  \cf1 string\cf0  FileName \{ \cf1 get\cf0 ; \cf1 set\cf0 ; \}\par ??\par ??        \cf1 public\cf0  \cf1 string\cf0  ReadToEnd()\par ??        \{\par ??            \cf1 return\cf0  \cf4 File\cf0 .ReadAllText(FileName);\par ??        \}\par ??    \}} -->
+<div style="border:thin solid #000000;background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">FileReader</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">string</span> FileName { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">string</span> ReadToEnd()</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">return</span> <span style="color:#2b91af;">File</span>.ReadAllText(FileName);</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+Now, we'll register two components with the container, each one reading a different file.
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;}??\fs20 component "file1.reader", FileReader:\par ??\tab FileName="file1.txt"\par ??\tab \par ??component "file2.reader", FileReader:\par ??\tab FileName="file2.txt"} -->
+<div style="border:thin solid #000000;background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;">
+<p style="margin:0;">component "file1.reader", FileReader:</p>
+<p style="padding-left:30px;margin:0;">FileName="file1.txt"</p>
+<p style="margin:0;"></p>
+<p style="margin:0;">component "file2.reader", FileReader:</p>
+<p style="padding-left:30px;margin:0;">FileName="file2.txt"</p>
+
+</div>
+Finally, the program code:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 public\cf0  \cf1 static\cf0  \cf1 void\cf0  Step8()\par ??        \{\par ??            \cf4 FileReader\cf0  defaultReader = container.Resolve&lt;\cf4 FileReader\cf0 &gt;();\par ??            \cf4 FileReader\cf0  file1Reader = container.Resolve&lt;\cf4 FileReader\cf0 &gt;(\cf5 "reader.file1"\cf0 );\par ??            \cf4 FileReader\cf0  file2Reader = container.Resolve&lt;\cf4 FileReader\cf0 &gt;(\cf5 "reader.file2"\cf0 );\par ??           \par ??            \cf4 Console\cf0 .WriteLine(\cf5 "Default contents: \{0\}"\cf0 , defaultReader.ReadToEnd());\par ??            \cf4 Console\cf0 .WriteLine(\cf5 "File1 contents: \{0\}"\cf0 , file1Reader.ReadToEnd());\par ??            \cf4 Console\cf0 .WriteLine(\cf5 "File2 contents: \{0\}"\cf0 , file2Reader.ReadToEnd());\par ??        \}} -->
+<div style="border:thin solid #000000;background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;">
+<p style="margin:0;"><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 public\cf0  \cf1 static\cf0  \cf1 void\cf0  Step8()\par ??        \{\par ??            \cf4 FileReader\cf0  defaultReader = container.Resolve&lt;\cf4 FileReader\cf0 &gt;();\par ??            \cf4 FileReader\cf0  file1Reader = container.Resolve&lt;\cf4 FileReader\cf0 &gt;(\cf5 "reader.file1"\cf0 );\par ??            \cf4 FileReader\cf0  file2Reader = container.Resolve&lt;\cf4 FileReader\cf0 &gt;(\cf5 "reader.file2"\cf0 );\par ??           \par ??            \cf4 Console\cf0 .WriteLine(\cf5 "Default contents: \{0\}"\cf0 , defaultReader.ReadToEnd());\par ??            \cf4 Console\cf0 .WriteLine(\cf5 "File1 contents: \{0\}"\cf0 , file1Reader.ReadToEnd());\par ??            \cf4 Console\cf0 .WriteLine(\cf5 "File2 contents: \{0\}"\cf0 , file2Reader.ReadToEnd());\par ??        \}} --></p>
+
+<div style="border:thin solid #000000;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">static</span> <span style="color:blue;">void</span> Main(string[] args)</p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;">FileReader</span> defaultReader = container.Resolve&lt;<span style="color:#2b91af;">FileReader</span>&gt;();</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;">FileReader</span> file1Reader = container.Resolve&lt;<span style="color:#2b91af;">FileReader</span>&gt;(<span style="color:#a31515;">"reader.file1"</span>);</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;">FileReader</span> file2Reader = container.Resolve&lt;<span style="color:#2b91af;">FileReader</span>&gt;(<span style="color:#a31515;">"reader.file2"</span>);</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"Default contents: {0}"</span>, defaultReader.ReadToEnd());</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"File1 contents: {0}"</span>, file1Reader.ReadToEnd());</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"File2 contents: {0}"</span>, file2Reader.ReadToEnd());</p>
+<p style="margin:0;">}</p>
+
+</div>
+</div>
+Adding the text files and running this bad boy gives the output:
+
+<strong>Default contents: This is the contents of file 1
+File1 contents: This is the contents of file 1.
+File2 contents: This is the contents of file 2.</strong>
+
+So, as Alex says, the default implementation is the first one in the file, just like using XML.
+
+In his tutorial, Alex gives another example of why you would need to reference implementations by id, so if you're interested, you can read it there (although, you shoulda already read that post...right?)
+
+Next time, constructor injection...

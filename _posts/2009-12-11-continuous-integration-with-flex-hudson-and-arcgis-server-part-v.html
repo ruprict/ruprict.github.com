@@ -1,0 +1,61 @@
+--- 
+layout: post
+title: Continuous Integration with Flex, Hudson, and ArcGIS Server-Part V
+tags: 
+- Continuous Integration
+- Flex
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1260720047"
+  _edit_last: "3307217"
+---
+(<a href="http://ruprict.wordpress.com/2009/07/31/continuous-integration-with-flex-hudson-and-arcgis-server-part-1/" target="_blank">Part 1</a>, <a href="http://ruprict.wordpress.com/2009/08/04/continuous-integration-with-flex-hudson-and-arcgis-server-part-2/" target="_blank">Part 2</a>, <a href="http://ruprict.wordpress.com/2009/08/24/continuous-integration-with-flex-hudson-and-arcgis-server-part-3/" target="_blank">Part 3</a>,<a href="http://ruprict.wordpress.com/2009/08/24/continuous-integration-with-flex-hudson-and-arcgis-server-part-4/" target="_blank">Part 3</a>, <a href="http://ruprict.wordpress.com/2009/09/30/continuous-integration-with-flex-hudson-and-arcgis-server-part-iv/" target="_self">Part 4</a>)
+
+In what I hope is the last post in this particular series, we will get Hudson up, building our project and running our tests.  Let's get to it.
+<h3>Get Hudson</h3>
+Download Hudson from <a href="http://hudson-ci.org/">here</a>.  This will download <strong>hudson.war</strong>, which is a java web archive.  Oh, and I presume that you have a java SDK installed somewhere.  If you don't go to <a href="http://java.com">java.com</a> and get one.
+<h3>Start Hudson</h3>
+Hudson is super easy to get up and running.  I suggest you copy the hudson.war file to c:\hudson and open a command prompt to that directory.  Type:
+<pre>java -jar hudson.war</pre>
+This will start the Hudson service on port 8080.  If you have anything already running on this port (I did) you need to shut it down or pass the --httpPort= to the command with the port you wish to use.
+<h3>Talk to Hudson</h3>
+Open up a browser to <strong>http://localhost:8080</strong> and you'll see this:
+<img src="http://ruprict.files.wordpress.com/2009/12/hudson_dashboard.png" alt="Hudson Dashboard" />
+
+We need to create a job for our Flex project.  Click <strong>New Job</strong> put in a job name (I am using "AGSFlexBuild") and select "Build a free-style software project" and Click OK.  This will bring up the main configuration of the build.  The first item we will set up is the Subversion repository.  The high-level process that Hudson will follow is:
+<ol>
+	<li>Poll Subversion for changes</li>
+	<li>When a change is detected, run an SVN updte to get the latest version</li>
+	<li>Build the project</li>
+	<li>On a successful build, run the tests</li>
+</ol>
+So, the first thing we should do is setup our Subversion repository information.
+
+<img src="http://ruprict.files.wordpress.com/2009/12/hudson_svn.png" alt="Hudson SVN" />
+
+Put your repository URL in as shown in the above image.  In the "Build Triggers" section select "Poll SCM" and put "* * * * *" in the "Schedule" text box. This will cause Hudson to poll SVN every minute.
+
+Now we have to add the build step. Since we have already set up our ant build script, this part is easy.  Click "Add Build Step" and select "Invoke Ant", then fill out the text box as shown here:
+<img src="http://ruprict.files.wordpress.com/2009/12/hudson_build_step.png" alt="Hudson Build Step" />
+
+At this point if we ran the build from Hudson, we'd get an error complaining about ${deploy_dir}.  The reason for this is we don't have a local.properties file on the server (<a href="http://ruprict.wordpress.com/2009/09/30/continuous-integration-with-flex-hudson-and-arcgis-server-part-iv/">remember when we did that?</a>).  There are several possible solutions to this issue.
+<ul>
+	<li>Create a ci.properties file, check it in to SVN, and pass a parameter to the build step in Hudson.</li>
+	<li>Create an ant task that copies the local.properties.template file to local.properties, then add a build step in Hudson that runs before the build-flex-project step.</li>
+	<li>Default the properties in the build.xml file.</li>
+</ul>
+The last option is the ickiest, but the first two are about the same, in my opinion.  I took the second option, creating an ant task and adding it to my Hudson configuration.
+<img src="http://ruprict.files.wordpress.com/2009/12/hudson_build_step_2.png" alt="Hudson Build Step 2" />
+I leave the creation of the ant task as an exercise for the reader.
+
+The final build step to be configured will run the tests.  Add another build "Invoke Ant" build step that invokes the "test" ant task.  At the bottom of the page, click the "Save" button.  This will take you to the AGSFlexBuild Project page.
+<h3>Run the build</h3>
+Click "Build Now" on the left hand side of the page and the build will be scheduled.  The build should run successfully.  Click on the hyperlink with the build date and time, which will take you to the details of the build.  If you click on "Console Output", the entire build log is displayed.  When things go awry in the build, you'll likely go here first.
+
+A continuous integration process is incomplete without some kind of notification when the build fails.  There are a couple of options for notification: e-mail, CCTray, or twitter, just to name a few.  E-mail is available in the base Hudson package (see Manage Hudson, Configure System, put in SMTP information).  CCTray allegedly works, but I don't use it and can't find it.  Twitter is available as a Hudson plugin.
+
+Speaking of plugins, there are TONS of them.  Twitter, Git, Windows Authentication, etc.  You can find them in the Hudson configration pages of the site.  I reccommend you look through them and find what you need.  Finally, it's super easy to get Hudson running as a Windows service, as there is a "Install as Windows Service" option in the Manage Hudson configuration area.
+
+It's difficult to find a stopping place when discussing Hudson, so if you have questions, send me an e-mail or leave a comment.  The code for this series can be found on <a href="http://github.com/ruprict/FlexAGSCI">github</a> (you could fork it and test using Hudson with git, just for fun.... ;))  I hope someone found this series useful.

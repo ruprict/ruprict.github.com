@@ -1,0 +1,21 @@
+--- 
+layout: post
+title: "ArcGIS Server: \"Cannot authenticate supplied identity\" Error"
+tags: 
+- ArcDeveloper
+- ArcGISServer
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: 1298392675:3307217
+---
+So, I get this error from time to time in a dev environment or, occasionally, on a client's server.  It used to be very, very frustrating to solve, so I created a checklist of things that worked.  I am writing it here to help others, hopefully, and make sure I never forget these steps.  I always try them in the following order.
+<ol>
+	<li>Make sure the ArcGISWebServices account password has not expired.  If you are comfortable with it, set this password to never expire.  This, more often than not, is the root cause of the issue.</li>
+	<li>We have seen an issue where having the I_USR account in the "Guests" group on the box caused this error.  Not sure why, but the SA couldn't tell me why that user was in that group either.Add ArcGISWebServices user to the Power Users group and restart the WWW service.  Again, this may be out of your security comfort zone.  If it is the problem, then you'll need to mess with the privileges of that account until you find the issue.  Also, I've seen this not work until I deleted the user, reran the Post Install and THEN added them to the group.</li>
+	<li>If it's still an issue, time to get nasty.  Delete your ArcGISWebServices user and rerun the Web Applications Post Install.  This will force you to create a new ArcGISWebServices user.</li>
+	<li>Last resort.  Do all the stuff in <a title="ESRi Forum" href="http://forums.esri.com/Thread.asp?c=158&amp;f=1702&amp;t=233637" target="_blank">this</a> thread, as well as the thread that is linked therein.  This is the "throw all the crap against the wall and hope something sticks" step.</li>
+</ol>
+Hopefully, that'll get it done.  If not, and you find something else that works, please let me know.  I don't run into this issue very often any more (but I did today and step 1 fixed it) but when I do, I am glad I have a checklist.

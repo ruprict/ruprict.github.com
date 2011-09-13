@@ -1,0 +1,59 @@
+--- 
+layout: post
+title: "ArcGIS Server Javascript API Gotcha: Identify"
+tags: []
+
+status: draft
+type: post
+published: false
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1226958887"
+---
+I ran into an odd problem after I installed SP1 with a site using the ArcGIS Server javascript API.  Basically, the identify task broke in IE only.  All was well in <a class="zem_slink" title="Mozilla Firefox" rel="geolocation" href="http://maps.google.com/maps?ll=45.1238,-123.1138&amp;spn=1.0,1.0&amp;q=45.1238,-123.1138%20%28Mozilla%20Firefox%29&amp;t=h">Firefox</a>, so I was stumped, as I didn't receive any error messages.  So, I cranked open <a href="http://www.fiddlertool.com/fiddler/" target="_blank">Fidder </a>which revealed that the HTTP request was never happening.  Strange, I thought, so I copied the HTTP request that was working in Firefox from the <a class="zem_slink" title="Firebug (Firefox extension)" rel="wikipedia" href="http://en.wikipedia.org/wiki/Firebug_%28Firefox_extension%29">Firebug</a> Net tab and pasted it into the IE address bar, yet it wouldn't let me paste the whole URL.  So, the URL was too long...but why?  As it turns out the <a href="http://resources.esri.com/help/9.3/arcgisserver/apis/javascript/arcgis/help/jsapi_start.htm" target="_blank">IdentifyParameters </a>use a geometry, and that geometry has a spatialReference, which comes from the map.  The spatialReference we use is WKID 2913, which is one of the Oregon State Plane projected systems.   When the API sets this value on the javascript map object, it uses the Well-Known Text (WKT) version, which is a REALLY long string.  So, I overwrite the spatialReference on the geometry before executing the identify task with a light object that just has the WKID.  Like so:
+<pre>        
+funciton doIdentify(evt){</pre>
+<div id="df" class="ArwC7c ckChnd">
+<pre>
+        this.taskParameters.mapExtent=this.map.extent;
+
+        // have to do this in order to make this work in IE.
+
+        // otherwise the AGS jsapi will post the WKT which makes the
+
+URL too long.
+
+        this.taskParameters.geometry.spatialReference={wkid:2913,toJson:function(){return
+
+'{"wkid":"2913"}';}};
+
+        if (this.options.notifier){
+
+            this.options.notifier.ShowLoading("Identifying...",0);
+
+        }
+
+        esriConfig.defaults.io.postLength=100000;</pre>
+<pre>
+        dojo.forEach(this.map.services,dojo.hitch(this,function(serv){
+
+            if (serv.Name.indexOf("Aerial")===-1){
+
+                var task = new esri.tasks.IdentifyTask(serv.URL);
+
+                this.taskParameters.height=this.map.height;
+
+                this.taskParameters.width=this.map.width;</pre>
+<pre></pre>
+<pre>
+task.execute(this.taskParameters,dojo.hitch(this,this._identifyResults));
+
+            }
+
+        }));
+
+        dojo.publish("/esi/identify/lastservice");
+
+    },</pre>
+</div>
+<div class="zemanta-pixie" style="margin-top:10px;height:15px;"><a class="zemanta-pixie-a" title="Zemified by Zemanta" href="http://reblog.zemanta.com/zemified/541f258e-de77-4bdc-a076-611ce3c749bd/"><img class="zemanta-pixie-img" style="border:medium none;float:right;" src="http://img.zemanta.com/reblog_e.png?x-id=541f258e-de77-4bdc-a076-611ce3c749bd" alt="Reblog this post [with Zemanta]" /></a></div>

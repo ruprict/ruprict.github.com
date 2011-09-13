@@ -1,0 +1,130 @@
+--- 
+layout: post
+title: Continuous Integration with Flex, Hudson, and ArcGIS Server, Part 1
+tags: 
+- Agile
+- Continuous Integration
+- Flex
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1254341521"
+  _edit_last: "3307217"
+---
+(<a href="http://ruprict.wordpress.com/2009/08/04/continuous-integration-with-flex-hudson-and-arcgis-server-part-2/">Part 2</a>, <a href="http://ruprict.wordpress.com/2009/08/24/continuous-integration-with-flex-hudson-and-arcgis-server-part-3/">Part 3</a>, <a href="http://ruprict.wordpress.com/2009/09/30/continuous-integration-with-flex-hudson-and-arcgis-server-part-iv/">Part 4</a>)
+
+I've been meaning to blog about our findings with getting CI going for Flex, since I took time to <a href="http://ruprict.wordpress.com/2009/01/10/forced-to-flex/">whinge </a>about it earlier.  It was a bit of a journey, but all in all, not that bad.  Much of the thanks goes to <a href="https://hudson.dev.java.net/" target="_blank">Hudson</a>, which is, how you say?, super-fantastic.  I plan to break this into a few blog posts rather than one big-old doozy.   The parts (I think) will be along the lines of:
+<ol>
+	<li>Getting your Fles project building with ant and Flex Builder, parts 1 and 2.</li>
+	<li>Setting up unit testing with Fluint.</li>
+	<li>Setting up Hudson.</li>
+</ol>
+<h4>Whachoo Need (OOH)</h4>
+This post is focused on getting your Flex Builder project building with ant.  As such, I presume you are using Flex Builder, but if you aren't and just want to build with ant, you should be OK. Oh, and I am doing this on Winders, even though ant is usually the domain of the Unix-based Java wanks (I mean "wanks" as a term of endearment, like "I love those wanks")
+
+Go get the following and download to your computer:
+<ul>
+	<li><a href="http://ant.apache.org/bindownload.cgi">ANT </a>- The original builder.  It can carry, like, 10,000 times its own weight in builds.  Unzip it to c:\ant.</li>
+	<li>Flex Ant Tasks - These come with the Flex SDK, which comes with Flex Builder.  You can find them in C:\Program Files (x86)\Adobe\Flex Builder 3\sdks\3.2.0\ant\lib\flexTasks.jar.  If you don't have Flex Builder, go download the <a href="http://www.adobe.com/cfusion/entitlement/index.cfm?e=flex3sdk" target="_blank">SDK</a> and put it somewhere.</li>
+	<li><a href="http://resources.esri.com/arcgisserver/apis/flex/">ArcGIS Server Flex API</a> - So we can get our map on, know what I'm saying? (I am using 1.2)</li>
+</ul>
+<h4>Create the Project</h4>
+Open Flex Builder and create a new project.  I am presuming that your local workspace is c:\projects\FlexCI, though it really doesn't matter.
+
+So, we'll start by creating a new Flex Project in Flex Builder.
+
+<a href="http://ruprict.files.wordpress.com/2009/07/flexproject.png"><img title="Create Flex Project" src="http://ruprict.files.wordpress.com/2009/07/flexproject.png?w=150" alt="Create Flex Project" width="150" height="129" /></a>
+
+Hit 'Next' in the project wizard and we have our project.  Copy the AGS Flex API swc into your libs folder (see pic).
+
+<a href="http://ruprict.files.wordpress.com/2009/07/flexapi.png"><img title="flexapi" src="http://ruprict.files.wordpress.com/2009/07/flexapi.png?w=108" alt="flexapi" width="108" height="150" /></a>
+
+Now we can make a map and stuff.  Add the following code to your app:
+<pre class="csharpcode" style="overflow:auto;">&lt;esri:Map&gt;
+     &lt;esri:ArcGISTiledMapServiceLayer
+          url=<span class="str">"http://server.arcgisonline.com/ArcGIS/rest/services/ESRI_StreetMap_World_2D/MapServer"</span>/&gt;
+&lt;/esri:Map&gt;</pre>
+Now we have our map.  In Flex Builder, build (Ctrl+B, unless you are using ‘Build Automatically’) the site and run it, you should see a map of our world.  Building with Flex Builder works, which was a requirement for me.  I wanted people to be able to build and debug in the IDE, but also quickly build from the command line with ant.  I like <strong>Flex</strong>ibility, #rimshot.
+<h2>High Apple Pie in the Sky Hopes</h2>
+In order to build with ant, we need a couple of items
+<ul>
+	<li>A build file, we will call build.xml</li>
+	<li>A properties file, we will call build.properties</li>
+</ul>
+I am not about to go into the gory details of how ant works, but presume you know the basics, which is all I know.  We need to define a build target that compiles our Flex project.  The steps the build file will go through are:
+<ol>
+	<li>Clean out the build dir.</li>
+	<li>Build the project.</li>
+</ol>
+In ant-speak, that is two targets.  I will call them ‘init’ and ‘build-flex-project’.  For the init target, we just need to delete everything in the directory that Flex Builder set up as the deploy location, which is (by default) the bin-debug directory.  Create a build.xml file in your Flex Project root, has the following XML:
+<pre class="csharpcode" style="overflow:auto;">&lt;project name=<span class="str">'Flex Ant Tasks Build Script'</span> <span class="kwrd">default</span>=”init”<span class="str">'&gt;
+    &lt;!-- delete and redeploy --&gt;
+    &lt;target name='</span>init<span class="str">'&gt;
+        &lt;delete includeemptydirs='</span><span class="kwrd">true</span><span class="str">'&gt;
+            &lt;fileset dir='bin-debug</span><span class="str">' includes='</span>**\*' /&gt;
+        &lt;/delete&gt;
+    &lt;/target&gt;
+&lt;/project&gt;</pre>
+This is a fully-functional ant script now.  Test it by opening a command prompt, switching to the project directory, and typing ‘c:\ant\bin\ant’ (minus the quotes, of course)  You should see something like:
+
+<a href="http://ruprict.files.wordpress.com/2009/07/firstant.png"><img style="display:inline;border-width:0;" title="firstant" src="http://ruprict.files.wordpress.com/2009/07/firstant_thumb.png" border="0" alt="firstant" width="244" height="178" /></a>
+
+Also, your bin-debug directory should be empty.  WOOHOO!  If you build with Flex Builder again (you may have to “Clean” since FB won’t build unless it detects a change) the files will go back into the bin-debug dir.  Right, now let’s get the build part going.  Adobe was nice enough to create ant tasks that will build Flex projects.  The easiest way to make them available to your ant script is to:
+<ol>
+	<li>Copy the flexTasks.jar file into your c:\ant\lib folder.</li>
+	<li>Reference these tasks in your build.xml file.</li>
+</ol>
+The second part is done by adding the following code to the top of the build.xml file:
+<pre class="csharpcode" style="overflow:auto;">&lt;!-- points to are flexTasks.jar --&gt;
+&lt;taskdef resource=<span class="str">'flexTasks.tasks'</span> /&gt;</pre>
+That’ll do it.  (NOTE:  In a real CI scenario, which we’ll get to, we would not copy the jar into the ant\lib folder, but make it part of the project artifacts and reference it locally.  Bear with me, baby steps on the bus…)
+
+Now, let’s add the build-flex-project target, which uses the mxmlc Flex ant task.
+<pre class="csharpcode" style="overflow:auto;">&lt;target name=<span class="str">'build-flex-project'</span> depends=<span class="str">'init'</span>&gt;
+     &lt;mxmlc file=<span class="str">'${srcpath.dir}/${application.name}.mxml'</span> output=<span class="str">'${deploypath.dir}/${application.name}.swf'</span>&gt;
+           &lt;load-config filename=<span class="str">'${FLEX_HOME}/frameworks/flex-config.xml'</span>/&gt;
+           &lt;include-libraries file=<span class="str">'${libs.dir}'</span> /&gt;
+     &lt;/mxmlc&gt;
+&lt;/target&gt;</pre>
+WHOA!  OK, so I’ve jumped ahead a bit, so lemme ‘splain.  First off, we tell ant that this target depends on the init target, so it will run init before running the build.  Second, those funky ${} items that you see are properties.  So, you can see that I have one for":
+<ul>
+	<li>srcpath.dir – the source directory, so we knows what to build.</li>
+	<li>FLEX_HOME – this is where our SDK lives</li>
+	<li>deploypath.dir – where to put the build output</li>
+	<li>libs.dir – where are external libraries (like the AGS Flex API) live</li>
+	<li>application.name – What do we want our SWF to be called.</li>
+</ul>
+Now we need to put these properties somewhere, and the aforementioned build.properties file is where they belong.  Looks like:
+<pre class="csharpcode" style="overflow:auto;">#Copy <span class="kwrd">this</span> file locally to build.properties and change below <span class="kwrd">for</span> your env
+
+# change <span class="kwrd">this</span> to your Flex SDK directory path
+FLEX_HOME=C:/Program Files (x86)/Adobe/Flex Builder 3/sdks/3.2.0
+
+# <span class="kwrd">this</span> points to your project<span class="str">'s src directory
+# {$basedir} is a default variable that can be used in any Antscript
+# and it points to the project'</span>s root folder [ flex_ant_pt1_Tasks ]
+# <span class="kwrd">in</span> <span class="kwrd">this</span> <span class="kwrd">case</span>
+srcpath.dir =${basedir}/src
+
+# points to the project's libs directory
+libs.dir =${basedir}/libs
+
+# <span class="kwrd">this</span> <span class="kwrd">is</span> the folder we want to publish the swf to
+deploypath.dir = ${basedir}/bin-debug
+
+application.name=FlexAGSCI</pre>
+We need to tell our build.xml file about the build properties file, and we do so by adding this to the top (meaning, first thing under the &lt;project&gt; opening tag):
+<pre class="csharpcode" style="overflow:auto;">&lt;!-- load properties file --&gt;
+&lt;property file=<span class="str">'build.properties'</span>/&gt;</pre>
+The last thing we need before running the build again is to change the default target to build-flex-project.  You’ll find the <em>default</em> attribute on the root project element.
+
+Now, running ‘c:\ant\bin\ant’ (btw, putting c:\ant\bin in your PATH is advisable, then you could just type ‘ant’) at the command line, gives:
+
+<a href="http://ruprict.files.wordpress.com/2009/07/secondant.png"><img style="display:inline;border-width:0;" title="secondant" src="http://ruprict.files.wordpress.com/2009/07/secondant_thumb.png" border="0" alt="secondant" width="244" height="81" /></a>
+
+Look in your bin-debug folder, and you’ll see the SWF file, which should be fully functional.
+
+I think I’ll stop today’s post there.  It has gotten a bit long on me (they always do).  The next post will cover how to get the rest of the files that Flex Builder creates, like the HTML wrapper and Flash-detecting javascript files, incorporated into the build.
+
+Hope this is useful.

@@ -1,0 +1,66 @@
+--- 
+layout: post
+title: "The Bitter Coder Tutorials, Binsor Style IV: Switching Configs"
+tags: 
+- Binsor
+- Castle
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1216149082"
+---
+Previous posts in the series:
+<ul>
+	<li><a href="http://ruprict.wordpress.com/2008/07/11/the-bitter-coder-tutorials-binsor-style/" target="_blank">Part 1</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/12/the-bitter-coder-tutorials-binsor-style-arrays/" target="_blank">Part 2</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/14/the-bitter-coder-tutorials-binsor-style-iii-dictonaries/" target="_blank">Part 3</a></li>
+</ul>
+In <a href="http://blog.bittercoder.com/PermaLink,guid,d577122f-f5eb-4d8e-a446-ec81e9e5a661.aspx" target="_blank">part four</a> of his series, the Bitter Coder (Alex) shows how easy it is to switch configurations using Windsor.  Alex moves his config into a separate file and then comments out whichever configuration is not needed.  I am gonna take a different approach with Binsor, since we have the ability to use logic in the configuration.
+
+Presuming we have 2 environments, dev and prod, and we want to deploy to both without manually switching configuration items.  (Note:  The big idea in this post is to show the logic, not the best practice.  I realize that keeping dev config info in a production file is icky.)  Anyway, let's create a class that has a connection string, the ubiquitous configuraiton item:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red91\green105\blue106;\red26\green24\blue21;\red222\green222\blue203;\red121\green151\blue84;\red199\green199\blue165;}??\fs30 \cf1\cb2\highlight2 public\cf3  \cf1 class\cf3  \cf4 ConfigDepot\par ??\cf3     \{\par ??        \cf1 public\cf3  \cf1 string\cf3  \cf5 ConnectionString\cf3 \{ \cf1 get\cf3 ;\cf1 set\cf3 ;\}\par ??        \par ??    \}} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;"><span style="color:#5b696a;">public</span> <span style="color:#5b696a;">class</span> <span style="color:#799754;">ConfigDepot</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">public</span> <span style="color:#5b696a;">string</span> <span style="color:#c7c7a5;">ConnectionString</span>{ <span style="color:#5b696a;">get</span>;<span style="color:#5b696a;">set</span>;}</p>
+<p style="margin:0;"></p>
+<p style="margin:0;">}</p>
+
+</div>
+So, we need something that is different between the development and production boxes to let us know which connect string to use.  For the purposes of this article, I am choosing the hostname.  Here is the Binsor:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red222\green222\blue203;\red26\green24\blue21;}??\fs30 \cf1\cb2\highlight2 machineName=System.Environment.MachineName\par ??if machineName.ToUpper() == "ESI-GGOODRICH":\par ??\tab connectionString="connStringDEV"\par ??else:\par ??\tab connectionString="connStringPROD"\par ??\par ??component "class.conn", ConfigDepot:\par ??\tab ConnectionString = connectionString} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;">machineName=System.Environment.MachineName</p>
+<p style="margin:0;">if machineName.ToUpper() == "DEVBOX":</p>
+<p style="padding-left:30px;margin:0;">connectionString="connStringDEV"</p>
+<p style="margin:0;">else:</p>
+<p style="padding-left:30px;margin:0;">connectionString="connStringPROD"</p>
+<p style="margin:0;"></p>
+<p style="margin:0;">component "class.conn", ConfigDepot:</p>
+<p style="padding-left:30px;margin:0;">ConnectionString = connectionString</p>
+
+</div>
+And the program....
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red91\green105\blue106;\red26\green24\blue21;\red222\green222\blue203;\red199\green199\blue165;}??\fs30 \cf1\cb2\highlight2 static\cf3  \cf1 void\cf3  \cf4 Main\cf3 (\cf1 string\cf3 [] \cf4 args\cf3 )\par ??        \{} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;"><span style="color:#5b696a;">static</span> <span style="color:#5b696a;">void</span> <span style="color:#c7c7a5;">Main</span>(<span style="color:#5b696a;">string</span>[] <span style="color:#c7c7a5;">args</span>)</p>
+<p style="margin:0;">{ <!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red121\green151\blue84;\red26\green24\blue21;\red222\green222\blue203;\red199\green199\blue165;\red150\green120\blue120;}??\fs30 \cf1\cb2\highlight2 ConfigDepot\cf3  \cf4 cl\cf3  \cf5 =\cf3  \cf4 container\cf5 .\cf4 Resolve\cf5 &lt;\cf1 ConfigDepot\cf5 &gt;\cf3 ();\par ??            \cf1 Console\cf5 .\cf4 WriteLine\cf3 (\cf4 cl\cf5 .\cf4 ConnectionString\cf3 );\par ??        \}} --></p>
+
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="padding-left:30px;margin:0;"><span style="color:#799754;">ConfigDepot</span> <span style="color:#c7c7a5;">cl</span> <span style="color:#967878;">=</span> <span style="color:#c7c7a5;">container</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Resolve</span><span style="color:#967878;">&lt;</span><span style="color:#799754;">ConfigDepot</span><span style="color:#967878;">&gt;</span>();</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#799754;">Console</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">WriteLine</span>(<span style="color:#c7c7a5;">cl</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">ConnectionString</span>);</p>
+<p style="margin:0;">}</p>
+
+</div>
+</div>
+When you run the program (which, um, defaults to the production conn string. Yikes!) and the name of your dev box is 'DEVBOX' then you'll see "connStringDEV".  Otherwise, you'll see "connStringPROD".
+
+It'd be easy to add a slew of connection parameters here, but you should be wary of a couple of Booisms.  First, the if block is determined by the indention level.  So, everything that is indented the same amount is part of the block. (Check <a href="http://boo.codehaus.org/Coding+Conventions" target="_blank">this </a>out for code conventions.)  Also, the 'if' line and the 'else' line end in a colon ( : ) which is a bit odd.
+
+Onward...next time we have Configuration Parameters.

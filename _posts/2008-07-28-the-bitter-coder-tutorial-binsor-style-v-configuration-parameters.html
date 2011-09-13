@@ -1,0 +1,61 @@
+--- 
+layout: post
+title: The Bitter Coder Tutorial, Binsor Style V - Configuration Parameters
+tags: 
+- Binsor
+- Castle
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1217250192"
+---
+(Sorry about the delay in the tutorials, but I took a week of vacation and my wife wouldn't let me near the computer...)
+
+Previous posts in the series:
+<ul>
+	<li><a href="http://ruprict.wordpress.com/2008/07/11/the-bitter-coder-tutorials-binsor-style/" target="_blank">Part 1</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/12/the-bitter-coder-tutorials-binsor-style-arrays/" target="_blank">Part 2</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/14/the-bitter-coder-tutorials-binsor-style-iii-dictonaries/" target="_blank">Part 3</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/16/the-bitter-coder-tutorials-binsor-style-iv-switching-configs/" target="_blank">Part 4</a></li>
+</ul>
+In <a href="http://blog.bittercoder.com/PermaLink,guid,4b0c6c3c-4280-4fae-bf22-b3218b1ee59d.aspx" target="_blank">tutorial #5</a>, Alex focuses on configuration parameters.  He creates 2 properties configuration files (live and debug) and then does an 'include' in the configuration XML to pull in which one he wants, commenting out the other.  I am gonna try something similar here.
+
+Boo/Binsor allows you to include files, but there is seemingly an issue.  Any variables defined in the included file are ignored, which I found odd (scope issue?)  Anyway, I then found <a href="http://www.ayende.com/Blog/archive/2007/10/10/Multi-file-DSLs.aspx" target="_blank">this post</a> from Ayende and knew I had to get a bit creative.  My inspiration was yet <a href="http://www.ayende.com/Blog/archive/2007/12/06/Binsor-Cross-file-extensibility.aspx" target="_blank">another post</a> from Ayende.  My solution was to create 2 files (live and debug, like Alex) and import them (like Alex.)   In each file is a function called DefineProperties() that returns a hash of property values.
+
+Here is propertiesLive.boo
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red222\green222\blue203;\red26\green24\blue21;}??\fs30 \cf1\cb2\highlight2 def DefineProperties():\par ??\tab configValues = \{\}\par ??\tab configValues['Name']="Live"\par ??\tab return configValues\par ??} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;">def DefineProperties():</p>
+<p style="padding-left:30px;margin:0;">configValues = {}</p>
+<p style="padding-left:30px;margin:0;">configValues['Name']="Live"</p>
+<p style="padding-left:30px;margin:0;">return configValues</p>
+
+</div>
+So, I create a hash, put in a 'Name' key and value, then return the hash.  Now I have to import the propertiesLive.boo file and then call the function.  Here's what I added to the Windsor.boo file:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red222\green222\blue203;\red26\green24\blue21;}??\fs30 \cf1\cb2\highlight2 //Change this to propertiesDebug.boo for Debug env\par ??import file from propertiesDebug.boo\par ??\par ??configEnvironment = DefineProperties()} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;">//Change this to propertiesDebug.boo for Debug env</p>
+<p style="margin:0;">import file from propertiesDebug.boo</p>
+<p style="margin:0;"></p>
+<p style="margin:0;">configEnvironment = DefineProperties()</p>
+
+</div>
+This is right under the namespace import statements.  Now I can use the configEnvironment hash in my component registrations:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red222\green222\blue203;\red26\green24\blue21;}??\fs30 \cf1\cb2\highlight2 component "class.conn", ConfigDepot:\par ??\tab ConnectionString = connectionString\par ??\tab ConfigEnvironment = configEnvironment['Name']} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;">component "class.conn", ConfigDepot:</p>
+<p style="padding-left:30px;margin:0;">ConnectionString = connectionString</p>
+<p style="padding-left:30px;margin:0;">ConfigEnvironment = configEnvironment['Name']</p>
+
+</div>
+You could easily add as many key/values as needed or put other logic in the DefineProperties() function.  The propertiesDebug.boo defines the same function, but with different values.
+
+It's not incredibly elegant, and I am betting Ayende or one of the other big brains could do it cleaner/better/stronger, but this works.
+
+Next time....lifestyles.

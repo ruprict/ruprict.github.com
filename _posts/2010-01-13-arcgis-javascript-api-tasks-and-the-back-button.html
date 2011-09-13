@@ -1,0 +1,28 @@
+--- 
+layout: post
+title: ArcGIS Javascript API Tasks and the Back Button
+tags: 
+- ArcDeveloper
+- ArcGIS Server
+- javascript
+status: publish
+type: post
+published: true
+meta: {}
+
+---
+<p>Today I was working on an issue with a Sharepoint (I know, I know) web part that we have created to host a map.  The web part using the ESRI ArcGIS Javascript API to dynamically load some graphics and layers when the page is loaded.  The structure of the Sharepoint pages is hierarchical, so the user would select a property, then a site on that property, then an agreement on that site.  Each of these pages contained a map that zoomed to the relevant area and loaded the relevant graphics/layers. This hierarchy leads the users to hit the browser Back button quite often.  Go to a property, then a site, back to the property, to another site, then an agreement, back to the site....you get the idea.</p>
+<p>Unfortunately, when the user hit the back button in <span style="text-decoration:line-through;">that piece of crap</span> Internet Explorer, the queries would not fire.  In all other browsers, the queries work fine when the back button is clicked, but not IE.  As you probably already know, if an enterprise is using Sharepoint, then they are using IE as their standard browser.  This issue was causing a ton of grief.</p> 
+<p>
+I tried many different approaches, from forcing HTTP headers (Pragma: no-cache or Expires: -1) to trying to reload the page if the history.next object was defined.  What finally worked was slightly changing the URL that task used so that IE wouldn't use the client-side cache.  I used a random number generator in javascript and appended it to the URL.  The code is below.	
+</p>
+<code style="font-size:small;overflow:scroll;">
+	var find = new ESRI.ArcGIS.VE.Query();</br>
+	find.Where="ATTRIBUTE='"+this.value.toUpperCase()+"'";</br>
+	find.OutFields=["ATTRIBUTE,OTHER_ATTRIBUTE"];</br>
+	var findTask = new ESRI.ArcGIS.VE.QueryTask();</br>
+	//Have to append a random number to get this to work when back button is pressed</br>
+	findTask.Url=th.Url+"/3?_esi="+Math.floor(Math.random()*111);</br>
+	findTask.Execute(find,dojo.hitch(this,this.handleResults));</br>
+</code>
+<p>The "_esi=" is just a key I put in to know it was mine and is, likely, unnecessary.  May not be the best solution (I bet Vish will skewer it) but it works. Anyway, this took a few hours away from my  life, so I thought I'd post it here.  Hope it helps someone else.</p>

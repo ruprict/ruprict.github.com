@@ -1,0 +1,204 @@
+--- 
+layout: post
+title: Continuous Integration with Flex, Hudson, and ArcGIS Server, Part 3
+tags: []
+
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1254341569"
+  _edit_last: "3307217"
+---
+(<a href="http://ruprict.wordpress.com/2009/07/31/continuous-integration-with-flex-hudson-and-arcgis-server-part-1/">Part 1</a>, <a href="http://ruprict.wordpress.com/2009/08/04/continuous-integration-with-flex-hudson-and-arcgis-server-part-2/">Part 2</a>, <a href="http://ruprict.wordpress.com/2009/09/30/continuous-integration-with-flex-hudson-and-arcgis-server-part-iv/">Part 4</a>)
+
+One of the tenets of continuous integration is automated testing.  The most basic form of testing, in this context, is unit testing, where each class or method is tested without running the other bits of the application.  Unit testing is focused and, hopefully, simple.  In this post, I am going to add unit testing to our application and get ant to run the tests.  There are several unit testing frameworks out there, and we’re going to use <a href="http://code.google.com/p/fluint/">Fluint</a>. Fluint and <a href="http://opensource.adobe.com/wiki/display/flexunit/FlexUnit;jsessionid=84EBDC62C2026FF173395F83C2D4F295">FlexUnit</a> have kinda merged into <a href="http://opensource.adobe.com/wiki/display/flexunit/FlexUnit+4+feature+overview">FlexUnit4</a>, which is in alpha.  FlexUnit4 is, howyousay, super-fantastic, but it doesn’t currently offer any ant tasks.  When it does, I’ll be moving to it post haste.
+
+Go get Fluint from <a href="http://fluint.googlecode.com/files/fluint-1.1.1.swc">here</a>.  Put the fluint-1.1.1.swc file in the libs folder of your project.  We are now ready to start with some simple Test Driven Development.  Let’s add a button that zooms the map one level in, shall we?  As all examples, it’s contrived, but the point is to focus on the process.   The process here will follow simple TDD: write a test, watch it fail, write the code to make it pass.  In order to be able to watch the test fail, we’re need a bit of a foundation.  For the sake of this article, I have made a “tests” folder in the <strong>src</strong> directory where I will store the test bits.  Also, we will need a test runner for when we want to manually run our test suite.  That can be downloaded from <a href="http://fluint.googlecode.com/files/FlexTestRunner.mxml">here</a> and copied to the <strong>src</strong> directory as well.  Once the runner (FlexTestRunner.mxml) is in the <strong>src</strong> dir, be sure to go into the project properties and add it to the list of Flex Applications for the project.  if you’ve done all that properly, then you will be able to run the FlexTestRunner application, which runs the Fluint test suites, by default.
+
+<a href="http://ruprict.files.wordpress.com/2009/08/image1.png"><img style="display:inline;border-width:0;" title="image" src="http://ruprict.files.wordpress.com/2009/08/image_thumb1.png" border="0" alt="image" width="244" height="181" /></a>
+
+We don’t want to run the framework tests, so remove all mentions of FrameworkSuite from the code in FlexTestRunner.mxml.  In Fluint, a test runner runs test suites and test suites are composed of test cases.  We will make our own test suite, called ZoomButtonTestSuite, and our own test case called (you guessed it) ZoomButtonTestCase.  These live in the aforementioned “tests” dir.
+
+The test suite is simple:
+<pre class="csharpcode">package tests
+{
+    import net.digitalprimates.fluint.tests.TestSuite;
+    <span class="kwrd">public</span> <span class="kwrd">class</span> ZoomButtonTestSuite extends TestSuite
+    {
+        <span class="kwrd">public</span> function ZoomButtonTestSuite()
+        {
+            addTestCase(<span class="kwrd">new</span> ZoomButtonTestCase());
+        }
+
+    }
+}</pre>
+All we do is pull in our test case, which looks like:
+<pre class="csharpcode" style="overflow:auto;">package tests
+{
+    import net.digitalprimates.fluint.tests.TestCase;
+
+    <span class="kwrd">public</span> <span class="kwrd">class</span> ZoomButtonTestCase extends TestCase
+    {
+        <span class="kwrd">public</span> function ZoomButtonTestCase()
+        {
+            super();
+        }
+    }
+}</pre>
+Before we go on, go back to FlexTestRunner.mxml and add ZoomButtonTestSuite to the suiteArray in startTestProcess, so it looks like:
+<pre class="csharpcode" style="overflow:auto;"><span class="kwrd">protected</span> function startTestProcess( <span class="kwrd">event</span>:Event ) : <span class="kwrd">void</span>
+{
+    var suiteArray:Array = <span class="kwrd">new</span> Array();
+    suiteArray.push( <span class="kwrd">new</span> ZoomButtonTestSuite() );
+
+    testRunner.startTests( suiteArray );
+}</pre>
+We should be ready to right our first test.  For the ZoomButton, here are the specs:
+<ul>
+	<li>When the user clicks the button, zoom the map in one level.</li>
+</ul>
+Pretty complicated, eh?  Here’s the test:
+<pre class="csharpcode" style="overflow:auto;"><span class="kwrd">public</span> function testZoomIn():<span class="kwrd">void</span>{
+    var button:ZoomButton = <span class="kwrd">new</span> ZoomButton();
+    var beforeLevel:uint= button.map.level;
+    button.doZoom();
+
+    assertTrue(button.map.level &lt; beforeLevel);
+}</pre>
+I have started with the button API design, which is the real aim of our test.  Just from this test, you can see that:
+<ul>
+	<li>The button is it’s own class.</li>
+	<li>The button has a property called map.</li>
+	<li>The button has a method called doZoom() (it has to be public for this example…not sure i like that)</li>
+	<li>The doZoom() method changes the map level.</li>
+</ul>
+This won’t even compile, so let’s get that happening.
+<pre class="csharpcode" style="overflow:auto;">package widgits
+{
+    import com.esri.ags.Map;
+    import mx.controls.Button;
+
+    <span class="kwrd">public</span> <span class="kwrd">class</span> ZoomButton extends Button
+    {
+        <span class="kwrd">public</span> var map:Map;
+        <span class="kwrd">public</span> function ZoomButton()
+        {
+            super();
+        }
+        <span class="kwrd">public</span> function doZoom():<span class="kwrd">void</span>{
+
+        }
+    }
+}</pre>
+OK.  The ZoomButton extends the Button class, has a map property (setter/getter not used for brevity) and a doZoom() method.  Launch the test runner, and you’ll see:
+
+<a href="http://ruprict.files.wordpress.com/2009/08/image2.png"><img style="display:inline;border-width:0;" title="image" src="http://ruprict.files.wordpress.com/2009/08/image_thumb2.png" border="0" alt="image" width="244" height="147" /></a>
+
+About what we’d expect.  The button.map property is null.  However, I don’t want to create a full blown ESRI map for my tests.  It will be clunky and slow and difficult.  We need to fake the map.  This is where Mocks come in.
+<h2>Mocking What We Don’t (need to) Understand</h2>
+Just like unit testing frameworks, there are quite a few <a href="http://martinfowler.com/articles/mocksArentStubs.html" target="_blank">mocking</a> frameworks in Flex land.  For this article, I am going to use <a href="http://code.google.com/p/mock-as3/" target="_blank">MockAS3</a>. (You have to build from source.  Or you can leave a comment with an e-mail and I’ll send you my copy).  Mock AS3 is nice, as it lets us mock a class and not just an interface.  ESRI does not implement an interface with its controls (like Map) for reasons that I don’t know, but I wish they would.  Also, this unit test is an <em>interaction-based</em> test, meaning we are going to set expectation of how we expect the ZoomButton and the map to interact, then verify those expectations as part of the test.  This is what mocking is, testing interactions and expectations presuming all dependent objects do what they are supposed to do.
+
+So, what do we expect the ZoomButton to do in the doZoom() method?  We expect it to call map.zoomIn(), right?  Our first, naive test was testing properties on the map.  While this is testing a valid post-condition, it bleeds too far into testing the ESRI Map control and not the ZoomButton.  After all, the ZoomButton does not set the map level, it just calls a method on the map. If it does that, we are happy with our ZoomButton.  Any issues outside of it are not related to the ZoomButton and its purpose.  With this in mind, our new test looks like:
+<pre class="csharpcode"><span class="kwrd">public</span> function testZoomIn():<span class="kwrd">void</span>{
+        var button:ZoomButton = <span class="kwrd">new</span> ZoomButton();
+        var mapMock:MapMock = <span class="kwrd">new</span> MapMock();
+        mapMock.mock.method(<span class="str">'zoomIn'</span>).once;
+
+        button.doZoom();
+
+        mapMock.mock.verify();
+}</pre>
+The new test now creates a mock object for the ZoomButton.map property and tells it to expect the “zoomIn” method to be called one time.  We then test the doZoom method, followed by asking the mock to verify that our expectation was met.  Here is the mock:
+<pre class="csharpcode">package tests.mocks
+{
+    import com.anywebcam.mock.Mock;
+    import com.esri.ags.Map;
+    <span class="kwrd">public</span> <span class="kwrd">class</span> MapMock extends Map
+    {
+        <span class="kwrd">public</span> var mock:Mock;
+        <span class="kwrd">override</span> <span class="kwrd">public</span> function MapMock()
+        {
+            mock = <span class="kwrd">new</span> Mock(<span class="kwrd">this</span>);
+        }
+
+        <span class="kwrd">override</span> <span class="kwrd">public</span> function zoomIn():<span class="kwrd">void</span>{
+            mock.zoomIn();
+        }
+
+    }
+}</pre>
+This follows the pretty-good documentation on the Mock AS3 Google Code site for mocking classes.  We only need to mock the methods on which we are setting expectations.  Build and launch the test runner again.
+
+<a href="http://ruprict.files.wordpress.com/2009/08/image3.png"><img style="display:inline;border-width:0;" title="image" src="http://ruprict.files.wordpress.com/2009/08/image_thumb3.png" border="0" alt="image" width="244" height="147" /></a>
+
+Test still fails, but we get a new error:  <strong>Verifying Mock Failed.</strong> We haven’t coded our doZoom() method yet.
+<pre class="csharpcode"><span class="kwrd">public</span> function doZoom():<span class="kwrd">void</span>{
+    <span class="kwrd">if</span> (map)
+        map.zoomIn();
+    <span class="kwrd">else</span>
+        <span class="kwrd">throw</span> <span class="kwrd">new</span> Error(<span class="str">"Map is not set"</span>);
+}</pre>
+Now, running the tests gives us sweet green….
+
+<a href="http://ruprict.files.wordpress.com/2009/08/image4.png"><img style="display:inline;border-width:0;" title="image" src="http://ruprict.files.wordpress.com/2009/08/image_thumb4.png" border="0" alt="image" width="244" height="147" /></a>
+<h2>Test Ant, Test Ant…</h2>
+Now, we need to get these tests running with ant.  Luckily, Fluint ships with ant tasks (which are not available for FlexUnit4 at the time of this writing, but they assure me they are coming)  However, the ant tasks will not use the FlexTestRunner.mxml.  They use a different test runner with is Adobe AIR based, called (you guessed it) AirTestRunner, which you can download from <a href="http://fluint.googlecode.com/files/FluintAirTestRunner-1.1.1.air" target="_blank">here</a>.  Double clicking on the .air files will launch the AIR installer.  Just follow all the prompts and it will install the FlexAirTestRunner to C:\Program Files\FluintAIRTestRunner.  In that directory you’ll see a .EXE file as well as a .SWF file, which is the actual test runner.  Another caveat to running the Fluint tests with ant is that the AIR test runner requires the use of Flex Modules.  What this means is that you have to create one or more Flex Modules for your tests, depending on how you want to structure the tests.  Basically, each module acts like a container for TestSuites that you want to run, then add the module to the ant task.  Enough talk.   A sample test module can be downloaded from the Fluint Google Code site, <a href="http://fluint.googlecode.com/files/AirTestModule.mxml" target="_blank">here</a> or can be easily written.  A Fluint test module implements the ITestModule interface, which has a single method: getTestSuites().  Here is ours:
+<pre class="csharpcode" style="overflow:auto;">&lt;?xml version=<span class="str">"1.0"</span> encoding=<span class="str">"utf-8"</span>?&gt;
+&lt;mx:Module xmlns:mx=<span class="str">"http://www.adobe.com/2006/mxml"</span> implements=<span class="str">"net.digitalprimates.fluint.modules.ITestSuiteModule"</span>&gt;
+    &lt;mx:Script&gt;
+        &lt;![CDATA[
+
+            <span class="kwrd">public</span> function getTestSuites() : Array
+            {
+                 var suiteArray : Array = <span class="kwrd">new</span> Array();
+                suiteArray.push( <span class="kwrd">new</span> ZoomButtonTestSuite());
+                <span class="kwrd">return</span> suiteArray;
+            }
+        ]]&gt;
+    &lt;/mx:Script&gt;
+&lt;/mx:Module&gt;</pre>
+Looks a lot like the FlexTestRunner.mxml, huh?  The only thing we have left to do now is add a test target to our ant script.  As some of you might have guessed, we need to add the Fluint ant tasks to our build.xml file.  The easiest (read: not necessarily RIGHT) way to do this is copy them into the c:\ant\lib directory.  You can get the JAR file with the ant tasks <a href="http://fluint.googlecode.com/files/FluintAnt-1.1.1.jar" target="_blank">here</a>.   Once they are in the ant lib directory, add the following line to your build.xml (right under the flexTasks is a good spot)
+<pre class="csharpcode" style="overflow:auto;">&lt;taskdef name=<span class="str">'fluint'</span> classname=<span class="str">'net.digitalprimates.ant.tasks.fluint.Fluint'</span>  /&gt;</pre>
+There, now we can use our Fluint tasks in the ant file.  Since the tests are using Flex modules, we’ll want to have a couple of targets in the build script: one that builds the module, and one that executes the test.  Heres’ the target that builds the module:
+<pre class="csharpcode" style="overflow:auto;">&lt;target name=<span class="str">"build-test-module"</span>&gt;
+     &lt;echo&gt;Building test module&lt;/echo&gt;
+    &lt;mxmlc file=<span class="str">'${srcpath.dir}/tests/ZoomButtonTestModule.mxml'</span>  target-player=<span class="str">"10.0.0"</span>
+        output=<span class="str">'${deploypath.dir}/tests/ZoomButtonTestModule.swf'</span> &gt;
+         &lt;load-config filename=<span class="str">'${FLEX_HOME}/frameworks/flex-config.xml'</span> /&gt;
+         &lt;source-path path-element=<span class="str">'${FLEX_HOME}/frameworks'</span>/&gt;
+         &lt;!-- source paths --&gt;
+         &lt;compiler.source-path path-element=<span class="str">'${srcpath.dir}'</span>/&gt;
+        &lt;!-- add external libraries --&gt;
+        &lt;include-libraries file=<span class="str">'${libs.dir}'</span> /&gt;
+    &lt;/mxmlc&gt;
+&lt;/target&gt;</pre>
+If you go to the command line and type ‘ant build-test—module’, it will build the module and copy it to our bin-debug directory. Now, we just need to tell the Fluint task to go find that module and run the test.  Here’s the target:
+<pre class="csharpcode" style="overflow:auto;">&lt;target name=<span class="str">'test'</span>&gt;
+    &lt;fluint
+       debug=<span class="str">'true'</span>
+       headless=<span class="str">'true'</span>
+       failOnError=<span class="str">'true'</span>
+       workingDir=<span class="str">'${fluint.dir}'</span>
+       testRunner=<span class="str">'${fluint.dir}/FluintAIRTestRunner.exe'</span>
+       outputDir=<span class="str">'${report.dir}'</span>&gt;
+
+       &lt;fileset dir=<span class="str">'${deploypath.dir}/tests'</span>&gt;
+          &lt;include name=<span class="str">'**/*TestModule.swf'</span>/&gt;
+       &lt;/fileset&gt;
+    &lt;/fluint&gt;
+&lt;/target&gt;</pre>
+You may have noticed the two new build variables: fluint.dir and report.dir.  The Fluint task needs to know where the FluintAirTestRunner.exe file resides, which is the former.  The latter tells fluint where to write the report of how the tests faired.   I added this to the bottom of the build.properties file:
+<pre class="csharpcode">#Fluint vars
+fluint.dir = C:/Program Files (x86)/FluintAIRTestRunner
+report.dir = ${basedir}/reports</pre>
+Now, running ‘ant test’ at the command line will run our test and generate the test report.  It’s an XML file that looks like:
+<pre class="csharpcode" style="overflow:auto;">&lt;testsuites status=<span class="str">"true"</span> failureCount=<span class="str">"0"</span> errorCount=<span class="str">"0"</span> testCount=<span class="str">"1"</span>&gt;
+  &lt;testsuite name=<span class="str">"tests.ZoomButtonTestCase"</span> errors=<span class="str">"0"</span> failures=<span class="str">"0"</span> tests=<span class="str">"1"</span> time=<span class="str">"0.237"</span>&gt;
+    &lt;properties/&gt;
+    &lt;testcase name=<span class="str">"testZoomIn"</span> time=<span class="str">"0.237"</span> className=<span class="str">"tests.ZoomButtonTestCase"</span>/&gt;
+  &lt;/testsuite&gt;
+&lt;/testsuites&gt;</pre>
+So, our ant file is now running our tests.  We are well on our way to continuous integration with Flex.  Coming up, we’ll need to get some of the hardcoding out of the build file, look at our project directory structure, format our test reports to be more readable, and bring Hudson into the mix.  We have a lot to do.
+
+I hope you find this useful.

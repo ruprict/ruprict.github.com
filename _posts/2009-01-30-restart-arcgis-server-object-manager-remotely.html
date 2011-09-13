@@ -1,0 +1,26 @@
+--- 
+layout: post
+title: Restart ArcGIS Server Object Manager Remotely
+tags: 
+- powershell
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1252698103"
+---
+I wanted to post this because I think it's cool and showcases the very tip of Windows Powershell.  Plus, I got tired of keeping an RD session open the the GIS Server for when I wanted to restart AGS.
+
+If you haven't discovered <a href="http://www.microsoft.com/windowsserver2003/technologies/management/powershell/default.mspx">Windows Powershell</a>, you should.  It is the command line Windows needs.  I know very little about it, meaning:
+<ul>
+	<li>You can use .NET to write 'cmdlets', which are scripts.</li>
+	<li>You can browse more than just files.  For example, you can cd into the registry.  I thought this was surreal.</li>
+	<li>You can easily access other boxes.</li>
+	<li>Tons more</li>
+</ul>
+Anyway, go download powershell (from the above link) if you don't have it and open up a PS prompt.  This assumes that you are on your dev box and AGS is on a remote server. Type:
+<pre style="overflow:auto;font-size:small;">Get-WmiObject -computer agsServerName Win32_Service -Filter "Name='ArcServerObjectManager'" | Restart-Service</pre>
+Replace 'agsServerName' with your AGS Server name.  BOOM.  Service restarts.  Oh, and it'll work for any service on the box, just change the service name in the Filter expression.
+
+I have been lightly using Powershell for a long time, but really need to do more with it.

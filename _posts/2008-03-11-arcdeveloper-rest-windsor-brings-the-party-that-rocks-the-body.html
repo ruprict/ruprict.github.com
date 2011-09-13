@@ -1,0 +1,154 @@
+--- 
+layout: post
+title: "ArcDeveloper REST: Windsor Brings the Party That Rocks the Body"
+tags: 
+- ArcDeveloper
+- REST
+status: publish
+type: post
+published: true
+meta: {}
+
+---
+
+<div style="border:thin solid #cccccc;background:#cccccc none repeat scroll 0 50%;color:#ffffff;"> NOTE:  <a href="http://blog.davebouwman.net/" target="_blank">Dave</a> has blogged about the REST API, including a <a href="http://blog.davebouwman.net/" target="_blank">demo</a> of it in action!  Check it out!</div>
+In part III of my series on the ArcDeveloper REST API, I want to focus on how we use <a href="http://www.castleproject.org/container/index.html" target="_blank">Windsor </a>to configure the service.  The best way to to that is to take a step back and look at why Windsor exists.   Windsor is an <a href="http://www.martinfowler.com/articles/injection.html" target="_blank">Inversion of Control</a> (IoC) container that provides a robust Dependency Injection (DI) framework.  Both of those phrases have been blogged about by just about every human in existence, so if the Fowler link doesn't help, then hit Google.
+<h3>Background</h3>
+In a nutshell, when you have classes that depend on other classes (and, really, what project doesn't have that? Answer:  Maintenance nightmare projects) a good pattern to follow is to supply the dependencies as opposed to instantiating them from within the class.  The consummate example is:
+<pre style="border:thin dotted black;background:#cccccc none repeat scroll 0 50%;font-size:small;">
+public class ClassA{
+
+  private ClassB _classB;
+
+  public ClassA()
+
+  {
+
+    _classB=new ClassB();  //This is pure evil
+
+  }
+
+}</pre>
+The above code violates so many design patterns and principles that I had to have my 7-year old actually type it (he is a TOTAL hacker) b/c I couldn't bring myself to do it.  A better way to do it is:
+<pre style="border:thin dotted black;background:#cccccc none repeat scroll 0 50%;font-size:small;">
+public class ClassA{
+
+  private ClassB _classB;
+
+  public ClassA(ClassB injectedClassB)
+
+  {
+
+    _classB=injectedClassB;  //This is sunshine and puppy dogs
+
+  }
+
+}</pre>
+That code is an example of constructor injection, b/c the dependency must be provided to the constructor or the class cannot be instantiated.   There is also setter injection, where public properties are exposed and the dependencies are suppled there.   Both approaches have their pros and cons, and I am of the opinion that, if you are simply using DI in either form, you are WAY ahead of the game.
+
+Before I leave the background, I would be remiss if I didn't point you to  the <a href="http://wiki.bittercoder.com/(X(1)S(dkrjik45cnpm25bavottak45))/Default.aspx?Page=ContainerTutorials&amp;AspxAutoDetectCookieSupport=1" target="_blank">Bitter Coder's Wiki,</a> where the best tutorials on Windsor live and party.
+<h3>Great, So How'd Does the ArcDeveloper Rest Stuff Use Windsor?</h3>
+Well, the Windsor container can use an external configuration section, say, you the web.config file.
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red163\green21\blue21;\red255\green0\blue0;\red0\green0\blue0;}??\fs20 \cf1 &amp;lt;\cf3 configSections\cf1 &amp;gt;\par ??\tab \tab &amp;lt;\cf3 section\cf1  \cf4 name\cf1 =\cf0 "\cf1 castle\cf0 "\cf1  \cf4 type\cf1 =\cf0 "\cf1 Castle.Windsor.Configuration.AppDomain.CastleSectionHandler, Castle.Windsor\cf0 "\cf1 /&amp;gt;\par ??\tab    &amp;lt;/\cf3 configSections\cf1 &amp;gt;} -->
+<div style="background:white none repeat scroll 0 50%;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">    &lt;</span><span style="color:#a31515;">configSections</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">        &lt;</span><span style="color:#a31515;">section</span><span style="color:blue;"> </span><span style="color:red;">name</span><span style="color:blue;">=</span>"<span style="color:blue;">castle</span>"<span style="color:blue;"> </span><span style="color:red;">type</span><span style="color:blue;">=</span>"<span style="color:blue;">Castle.Windsor.Configuration.AppDomain.CastleSectionHandler, Castle.Windsor</span>"<span style="color:blue;">/&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">     &lt;/</span><span style="color:#a31515;">configSections</span><span style="color:blue;">&gt;</span></p>
+</div>
+Once that is defined, you have three major configuration areas that you can play with: facilities, properties, and components (NOTE:  You'll find a separate .config file for each of these sections in the web project of our REST stuff.)  Facilities are, basically, an extension to the Windsor container.  There are many existing facilities, but the easiest to grok is probably the LoggingFacility.  You register facilities on the container like so (from our facilities.config file):
+<div style="background:white none repeat scroll 0 50%;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">&lt;</span><span style="color:#a31515;">facilities</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">    &lt;</span><span style="color:#a31515;">facility</span></p>
+<p style="margin:0;"><span style="color:blue;">             </span><span style="color:red;">id</span><span style="color:blue;">=</span>"<span style="color:blue;">logging</span>"</p>
+<p style="margin:0;"><span style="color:blue;">             </span><span style="color:red;">type</span><span style="color:blue;">=</span>"<span style="color:blue;">Castle.Facilities.Logging.LoggingFacility, Castle.Facilities.Logging</span>"</p>
+<p style="margin:0;"><span style="color:blue;">             </span><span style="color:red;">loggingApi</span><span style="color:blue;">=</span>"<span style="color:blue;">log4net</span>"</p>
+<p style="margin:0;"><span style="color:blue;">             </span><span style="color:red;">customLoggerFactory</span><span style="color:blue;">=</span>"<span style="color:blue;">Castle.Services.Logging.Log4netIntegration.Log4netLogger</span>"</p>
+<p style="margin:0;"><span style="color:blue;">               /&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">    &lt;/</span><span style="color:#a31515;">facilities</span><span style="color:blue;">&gt;</span></p>
+</div>
+Here I have registered the Log4Net implemenation of the logging facility, which I could change to a different logging implementation by merely changing the "loggingApi" value (NOTE:  I omit the logging.config that is required to configure Log4Net as it's an, erm, implementation detail.)  Once defined, any components registered on the container that have an ILogger public property will automagically get an instance of my Log4Net logger.  That is just cool, man.
+The rest of our time together will be spent working with components (we aren't currently using properties right now, but they rock and the tutorials cover them well.)  The ArcDeveloper REST API has services that provide the query functionality (like an ArcGIS Server provider) and formatters that take the results from the providers and transform them into the requested format.  So, this means that we can register any provider and any formatter we might want to use with Windsor, and then all we have to do is tell the RESTServiceManager (our web service implementation class) about them.    Here's a picture (not quite 1000 words worth, but maybe a quick fin's worth)
+
+<a href="http://ruprict.files.wordpress.com/2008/03/croppercapture1.png" title="High Level Architecture of ArcDeveloper REST API"><img src="http://ruprict.files.wordpress.com/2008/03/croppercapture1.thumbnail.png" alt="High Level Architecture of ArcDeveloper REST API" /></a>
+
+So, let's quickly register the ArcGIS Service provider, which is implemented in the AGSMapService class.
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red163\green21\blue21;\red255\green0\blue0;\red0\green0\blue0;}??\fs20 \cf1 &amp;lt;\cf3 component\cf1  \cf4 id\cf1 =\cf0 "\cf1 ags.service\cf0 "\cf1  \cf4 lifestyle\cf1 =\cf0 "\cf1 pooled\cf0 "\cf1  \cf4 initialPoolSize\cf1 =\cf0 "\cf1 2\cf0 "\cf1  \cf4 maxPoolSize\cf1 =\cf0 "\cf1 2\cf0 "\cf1    \par ??\tab \tab \tab \tab \tab    \cf4 service\cf1 =\cf0 "\cf1 ArcDeveloper.REST.Core.Interfaces.IRESTService, ArcDeveloper.REST.Core\cf0 "\par ??\cf1 \tab \tab \tab \tab \tab    \cf4 type\cf1 =\cf0 "\cf1 ArcDeveloper.REST.ArcGIS.AGSMapService, ArcDeveloper.REST.ArcGIS\cf0 "\cf1 &amp;gt;\par ??\tab \tab \tab &amp;lt;\cf3 parameters\cf1 &amp;gt;\par ??        &amp;lt;\cf3 name\cf1 &amp;gt;\cf0 TestService\cf1 &amp;lt;/\cf3 name\cf1 &amp;gt;\par ??\tab \tab \tab \tab &amp;lt;\cf3 description\cf1 &amp;gt;\cf0 Base map\cf1 &amp;lt;/\cf3 description\cf1 &amp;gt;\par ??\tab \tab \tab \tab &amp;lt;\cf3 connectionString\cf1 &amp;gt;\cf0 http://65.101.234.201/arcgis/services/gains/gains/MapServer\cf1 &amp;lt;/\cf3 connectionString\cf1 &amp;gt;\par ??\tab \tab \tab &amp;lt;/\cf3 parameters\cf1 &amp;gt;\par ??\par ??\tab \tab &amp;lt;/\cf3 component\cf1 &amp;gt;} -->
+<div style="background:white none repeat scroll 0 50%;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">    &lt;</span><span style="color:#a31515;">component</span><span style="color:blue;"> </span><span style="color:red;">id</span><span style="color:blue;">=</span>"<span style="color:blue;">ags.service</span>"<span style="color:blue;"> </span><span style="color:red;">lifestyle</span><span style="color:blue;">=</span>"<span style="color:blue;">pooled</span>"<span style="color:blue;"> </span><span style="color:red;">initialPoolSize</span><span style="color:blue;">=</span>"<span style="color:blue;">2</span>"<span style="color:blue;"> </span><span style="color:red;">maxPoolSize</span><span style="color:blue;">=</span>"<span style="color:blue;">2</span>"<span style="color:blue;">   </span></p>
+<p style="margin:0;"><span style="color:blue;">                       </span><span style="color:red;">service</span><span style="color:blue;">=</span>"<span style="color:blue;">ArcDeveloper.REST.Core.Interfaces.IRESTService, ArcDeveloper.REST.Core</span>"</p>
+<p style="margin:0;"><span style="color:blue;">                       </span><span style="color:red;">type</span><span style="color:blue;">=</span>"<span style="color:blue;">ArcDeveloper.REST.ArcGIS.AGSMapService, ArcDeveloper.REST.ArcGIS</span>"<span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">  &lt;</span><span style="color:#a31515;">parameters</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">      &lt;</span><span style="color:#a31515;">name</span><span style="color:blue;">&gt;</span>TestService<span style="color:blue;">&lt;/</span><span style="color:#a31515;">name</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">      &lt;</span><span style="color:#a31515;">description</span><span style="color:blue;">&gt;</span>Base map<span style="color:blue;">&lt;/</span><span style="color:#a31515;">description</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">      &lt;</span><span style="color:#a31515;">connectionString</span><span style="color:blue;">&gt;</span>http://65.101.234.201/arcgis/services/gains/gains/MapServer<span style="color:blue;">&lt;/</span><span style="color:#a31515;">connectionString</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">    &lt;/</span><span style="color:#a31515;">parameters</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">&lt;/</span><span style="color:#a31515;">component</span><span style="color:blue;">&gt;</span></p>
+</div>
+There you go.  The AGSMapService class implements the IRESTService interface, and we provide the pertinent parameters.  The "name" parameter (value="TestService") will be what is provided in the URI in order to specify that we want to use this service.  The "connectionString" parameter is the URL of our ArcGIS Server Map Server object.   Look closely at the attributes of the component, and you will see that we are pooling 2 instances of the service, which allows us to connect on first request and keep the object around for other requests.  Since connecting to the server is a very expensive operation, we only have to live with it once.  Windsor does this all for you!  What do YOU do for Windsor?  HMMM?  That's what I thought.
+
+Anyway, lets show the formatter:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red163\green21\blue21;\red255\green0\blue0;\red0\green0\blue0;}??\fs20 \cf1 &amp;lt;\cf3 component\cf1  \cf4 id\cf1 =\cf0 "\cf1 geojson.formatter\cf0 "\cf1  \cf4 lifestyle\cf1 =\cf0 "\cf1 transient\cf0 "\par ??\cf1 \tab \tab \tab \tab \tab    \cf4 service\cf1 =\cf0 "\cf1 ArcDeveloper.REST.Core.Interfaces.IFormatter, ArcDeveloper.REST.Core\cf0 "\par ??\cf1 \tab \tab \tab \tab \tab    \cf4 type\cf1 =\cf0 "\cf1 ArcDeveloper.REST.Core.Services.GeoJSONFormatter, ArcDeveloper.REST.Core\cf0 "\cf1 &amp;gt;\par ??\tab \tab \tab &amp;lt;\cf3 parameters\cf1 &amp;gt;\par ??\tab \tab \tab \tab &amp;lt;\cf3 name\cf1 &amp;gt;\cf0 geoJSON\cf1 &amp;lt;/\cf3 name\cf1 &amp;gt;\par ??\tab \tab \tab &amp;lt;/\cf3 parameters\cf1 &amp;gt;\par ??\tab \tab &amp;lt;/\cf3 component\cf1 &amp;gt;} -->
+<div style="background:white none repeat scroll 0 50%;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">    &lt;</span><span style="color:#a31515;">component</span><span style="color:blue;"> </span><span style="color:red;">id</span><span style="color:blue;">=</span>"<span style="color:blue;">geojson.formatter</span>"<span style="color:blue;"> </span><span style="color:red;">lifestyle</span><span style="color:blue;">=</span>"<span style="color:blue;">transient</span>"</p>
+<p style="margin:0;"><span style="color:blue;">                       </span><span style="color:red;">service</span><span style="color:blue;">=</span>"<span style="color:blue;">ArcDeveloper.REST.Core.Interfaces.IFormatter, ArcDeveloper.REST.Core</span>"</p>
+
+<p style="margin:0;"><span style="color:blue;">                       </span><span style="color:red;">type</span><span style="color:blue;">=</span>"<span style="color:blue;">ArcDeveloper.REST.Core.Services.GeoJSONFormatter, ArcDeveloper.REST.Core</span>"<span style="color:blue;">&gt;
+</span>
+<p style="margin:0;"><span style="color:blue;">  &lt;</span><span style="color:#a31515;">parameters</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">    &lt;</span><span style="color:#a31515;">name</span><span style="color:blue;">&gt;</span>geoJSON<span style="color:blue;">&lt;/</span><span style="color:#a31515;">name</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">  &lt;/</span><span style="color:#a31515;">parameters</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">        &lt;/</span><span style="color:#a31515;">component</span><span style="color:blue;">&gt;</span></p>
+</div>
+So, our GeoJSONFormatter implements the IFormatter interface.  We name this one "geoJSON" which, whenever we write a second formatter, will be how the URI will refer to it when requesting the GeoJSON format.  Oh, and the lifestyle of this bad boy is "transient", meaning it's created on request and disposed after request.  This is not an expensive item, so that's how we roll.
+
+Finally, let's take a look at the RESTServiceManager:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red163\green21\blue21;\red255\green0\blue0;\red0\green0\blue0;\red0\green128\blue0;}??\fs20 \cf1 &amp;lt;\cf3 component\cf1  \cf4 id\cf1 =\cf0 "\cf1 rest.service\cf0 "\cf1  \cf4 lifestyle\cf1 =\cf0 "\cf1 singleton\cf0 "\cf1  \par ??\tab \tab \tab \tab \tab    \cf4 service\cf1 =\cf0 "\cf1 ArcDeveloper.REST.Core.Interfaces.IRESTServiceManager, ArcDeveloper.REST.Core\cf0 "\par ??\cf1 \tab \tab \tab \tab \tab    \cf4 type\cf1 =\cf0 "\cf1 ArcDeveloper.REST.Core.RESTServiceManager, ArcDeveloper.REST.Core\cf0 "\cf1 &amp;gt;\par ??\tab \tab \tab &amp;lt;\cf3 parameters\cf1 &amp;gt;\par ??\tab \tab \tab \tab &amp;lt;\cf3 services\cf1 &amp;gt;\par ??\tab \tab \tab \tab \tab &amp;lt;\cf3 list\cf1 &amp;gt;\par ??\tab \tab \tab \tab \tab \tab &amp;lt;\cf3 item\cf1 &amp;gt;\cf0 $\{ags.service\}\cf1 &amp;lt;/\cf3 item\cf1 &amp;gt;\par ??\tab \tab \tab \tab &amp;lt;!--\cf6 \tab &amp;lt;item&amp;gt;$\{other.service\}&amp;lt;/item&amp;gt;\cf1 --&amp;gt;\par ??\tab \tab \tab \tab \tab &amp;lt;/\cf3 list\cf1 &amp;gt;\tab \tab \tab \tab \par ??\tab \tab \tab \tab \tab \tab &amp;lt;/\cf3 services\cf1 &amp;gt;\par ??\tab \tab \tab \tab &amp;lt;\cf3 formatters\cf1 &amp;gt;\par ??\tab \tab \tab \tab \tab &amp;lt;\cf3 list\cf1 &amp;gt;\par ??\tab \tab \tab \tab \tab \tab &amp;lt;\cf3 item\cf1 &amp;gt;\par ??\cf0 \tab \tab \tab \tab \tab \tab \tab $\{geojson.formatter\}\par ??\cf1 \tab \tab \tab \tab \tab \tab &amp;lt;/\cf3 item\cf1 &amp;gt;\par ??\tab \tab \tab \tab \tab &amp;lt;/\cf3 list\cf1 &amp;gt;\par ??\tab \tab \tab \tab &amp;lt;/\cf3 formatters\cf1 &amp;gt;\par ??\tab \tab \tab  &amp;lt;/\cf3 parameters\cf1 &amp;gt;\par ??\tab \tab   &amp;lt;/\cf3 component\cf1 &amp;gt;} -->
+<div style="background:white none repeat scroll 0 50%;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">&lt;</span><span style="color:#a31515;">component</span><span style="color:blue;"> </span><span style="color:red;">id</span><span style="color:blue;">=</span>"<span style="color:blue;">rest.service</span>"<span style="color:blue;"> </span><span style="color:red;">lifestyle</span><span style="color:blue;">=</span>"<span style="color:blue;">singleton</span>"<span style="color:blue;"> </span></p>
+<p style="margin:0;"><span style="color:blue;">                       </span><span style="color:red;">service</span><span style="color:blue;">=</span>"<span style="color:blue;">ArcDeveloper.REST.Core.Interfaces.IRESTServiceManager, ArcDeveloper.REST.Core</span>"</p>
+<p style="margin:0;"><span style="color:blue;">                       </span><span style="color:red;">type</span><span style="color:blue;">=</span>"<span style="color:blue;">ArcDeveloper.REST.Core.RESTServiceManager, ArcDeveloper.REST.Core</span>"<span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">  &lt;</span><span style="color:#a31515;">parameters</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">                    &lt;</span><span style="color:#a31515;">services</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">      &lt;</span><span style="color:#a31515;">list</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">       &lt;</span><span style="color:#a31515;">item</span><span style="color:blue;">&gt;</span>${ags.service}<span style="color:blue;">&lt;/</span><span style="color:#a31515;">item</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">  &lt;!--</span><span style="color:green;">    &lt;item&gt;${other.service}&lt;/item&gt;</span><span style="color:blue;">--&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">                         &lt;/</span><span style="color:#a31515;">list</span><span style="color:blue;">&gt;                </span></p>
+<p style="margin:0;"><span style="color:blue;">                            &lt;/</span><span style="color:#a31515;">services</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">                    &lt;</span><span style="color:#a31515;">formatters</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">                          &lt;</span><span style="color:#a31515;">list</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">                                &lt;</span><span style="color:#a31515;">item</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;">            ${geojson.formatter}</p>
+<p style="margin:0;"><span style="color:blue;">        &lt;/</span><span style="color:#a31515;">item</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">      &lt;/</span><span style="color:#a31515;">list</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">     &lt;/</span><span style="color:#a31515;">formatters</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">  &lt;/</span><span style="color:#a31515;">parameters</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">          &lt;/</span><span style="color:#a31515;">component</span><span style="color:blue;">&gt;</span></p>
+</div>
+You can see that our RESTServiceManager implements our IRESTServiceManager interface and we register our AGSMapService and GeoJSONFormatter with the service manager.  The "services" and "formatters" properties of the service manager are lists, so we can add more services and more formatters simply by registering them on the container and adding them as an &lt;item&gt; to the list.   Let me say it another way, just to drive the point home:  If you wanted to register another ArcGIS Service map service with the RESTServiceManager, you would register with Windsor (so, copy the "ags.service", give it a new id and change the &lt;connectionString&gt;) and then add an &lt;item&gt; to the &lt;services&gt; parameter with the component id (oh, you may have to restart your web app, as changes to the external config files do not kick off an app unload.  If you don't like it, pull all the config sections into web.config).  After that, you can issue REST queries against the map service.  It's just that easy.
+
+One final caveat.  The IRESTServiceManager is not only our service manager, but it is also our WCF service contract.  When you host a WCF service in IIS, it is created by the WCF Service Host factory, which means there is no way to register it with the Windsor container.  That is bad, because if we can't register the service manager, then we can register the services, and pretty much we have a web service that does bugger all.  In order to get around this, the (man and legend) <a href="http://www.ayende.com" target="_blank">Ayende</a> wrote a component that will allow you to register your WCF services with Windsor.  The documentation for it is <a href="http://castleproject.org/container/facilities/trunk/wcf/index.html" target="_blank">here</a>, and is so eloquently written that I am stunned that I, er, I mean, the author didn't get at least a Pulitzer nomination.  The long and short of it is;
+
+- Change the .svc file to use a custom ServiceFactory (from our rest.svc file)
+<pre>&lt;%@ ServiceHost Service="rest.service"
+ Factory="Castle.Facilities.WcfIntegration.WindsorServiceHostFactory, Castle.Facilities.WcfIntegration" %&gt; (GRRR....CopyAsHTML doesn't help me in .svc files)</pre>
+- Instantiate the container at application start up, using the Global.Application_Start method (from our Global.asax.cs file)
+
+<!--  -->
+<div style="background:white none repeat scroll 0 50%;font-family:Courier New;font-size:8pt;color:black;"></div>
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof1252\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 protected\cf0  \cf1 void\cf0  Application_Start(\cf1 object\cf0  sender, \cf4 EventArgs\cf0  e)\par ??        \{\par ??            container = \cf1 new\cf0  \cf4 WindsorContainer\cf0 (\cf1 new\cf0  \cf4 XmlInterpreter\cf0 ());\par ??            \cf4 WindsorServiceHostFactory\cf0 .RegisterContainer(container.Kernel);\par ??            _log = container[\cf1 typeof\cf0 (\cf4 ILogger\cf0 )] \cf1 as\cf0  \cf4 ILogger\cf0 ;\par ??            _log.Info(\cf5 "Services app started successfully."\cf0 );\par ??\par ??        \}} -->
+<div style="background:white none repeat scroll 0 50%;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">    protected</span> <span style="color:blue;">void</span> Application_Start(<span style="color:blue;">object</span> sender, <span style="color:#2b91af;">EventArgs</span> e)</p>
+<p style="margin:0;">        {</p>
+<p style="margin:0;">     container = <span style="color:blue;">new</span> <span style="color:#2b91af;">WindsorContainer</span>(<span style="color:blue;">new</span> <span style="color:#2b91af;">XmlInterpreter</span>());</p>
+<p style="margin:0;">                <span style="color:#2b91af;">WindsorServiceHostFactory</span>.RegisterContainer(container.Kernel);</p>
+<p style="margin:0;">     _log = container[<span style="color:blue;">typeof</span>(<span style="color:#2b91af;">ILogger</span>)] <span style="color:blue;">as</span> <span style="color:#2b91af;">ILogger</span>;</p>
+<p style="margin:0;">                _log.Info(<span style="color:#a31515;">"Services app started successfully."</span>);</p>
+<p style="margin:0;">        }</p>
+</div>
+That's it. Now the WCF service will use the "rest.service" component we registered in the config file above.
+
+So, this post got a bit wordy on me.  I am young in my blogging ways, so I have trouble focusing.  Also, I am easily distracted by shiny objects.  In future posts, I plan to show how we leverage the Json.NET stuff for the GeoJSON formatter and maybe write a blog about something besides REST.

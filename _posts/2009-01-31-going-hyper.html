@@ -1,0 +1,36 @@
+--- 
+layout: post
+title: Going Hyper
+tags: 
+- Hyper-V
+- OS
+- Recommendations
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1233860164"
+---
+I built myself a new server last weekend, as the old one (a Dell 620 that was shipped in 2001!) finally kicked the bucket.   With much help from <a href="http://blog.geodatabase.com/" target="_blank">Horsey</a>, I pieced together a dual-core monster with 8GB of RAM and a saucy new case.  Horse suggested I look into a bare metal hypervisor OS, like <a href="http://www.vmware.com/products/esxi/" target="_blank">ESXi</a>, which I thought was a smashing idea.  I have been doing much of my work in VMs these days, and probably am in the same place as <a href="http://codebetter.com/blogs/kyle.baley/archive/2009/01/30/getting-used-to-working-with-vms.aspx" target="_blank">Kyle</a>.  However, I was finding out that once I was in the land of VMs, I always wanted more.  There'd be some reason why I needed another VM environment, but having that many being served up by the lappy was slowing...things...down.  My laptop is running <a href="http://www.win2008workstation.com" target="_blank">Windows Server 2008</a>, after I got sick of Vista, a move I highly recommend.  (Incidentally, if you do move to WS2008, <a href="http://social.technet.microsoft.com/Forums/en-US/winserverManagement/thread/0b0d0f2c-3a1b-4959-a557-b44d1612b6bb/" target="_blank">remove </a>the "Windows System Resource Manager" Feature.  The wmiprvse.exe process was kiling me)
+
+So, I tried ESXi, but my boot drive was an 80GB SATA drive, and the installation process could not find it.  Actually, it couldn't even find the controller.  I found all kinds of tricks to try to get it to work, but no dice.  So, Horse suggested <a href="http://www.xenserver5.com/" target="_blank">XenCenter</a> , but before  I had a chance to look at it, I found<a href="http://www.microsoft.com/servers/hyper-v-server/default.mspx" target="_blank"> Microsoft Hyper-V Server</a>.  It's MS's answer to the bare-metal hypervisor.  No GUI, no server roles, just a bare install that serves up VMs via Hyper-V.  I have been liking Hyper-V on the workstation, so this was intriguing.
+
+After downloading the iso and creating the image, the install was crazy easy.  It asks very few questions, reboots, and it's done.  You get screen that looks like this:
+
+[caption id="attachment_121" align="alignleft" width="128" caption="The bare Hyper-V Server desktop"]<a href="http://ruprict.files.wordpress.com/2009/01/hypervdesktop.png"><img class="size-thumbnail wp-image-121" title="Hyper-V Desktop" src="http://ruprict.files.wordpress.com/2009/01/hypervdesktop.png?w=128" alt="The bare Hyper-V Server desktop" width="128" height="89" /></a>[/caption]
+
+As you can see, there isn't much to it.  You can set up a network connection, download updates, and set local administrators.  You can also enable/disable remote desktop.  All pretty basic stuff.  The <a href="http://go.microsoft.com/fwlink/?LinkId=129493" target="_blank">installation guide </a>itself is a bare Word doc, and the <a href="http://www.microsoft.com/downloads/details.aspx?FamilyId=E1E111C9-FA69-4B4D-8963-1DD87804C04F" target="_blank">configuration guide</a> isn't much larger, which I consider good things, as bulky documents are not indicative of anything more than wordy technical writers.
+
+I should point that I am not a hypervisor or OS guru, by any measure.  I know enough about Windows OS to get what I need done, and I use people like Horse as my external hard drive for the more rare and difficult needs.  The fact that I set up this hypervisor means that any organism with opposable thumbs could easily do so as well.
+
+The singular issue I had setting up the OS was seeing it from other machines.  I work out of my house and VPN into home base.  This means, that, in order to put one of my boxes on the domain, I have to VPN in first.  I tried to figure out how to do this briefly for the hypervisor, but gave up as it's not all that important that it is on the domain.  However, this caused me grief when trying to see the box from my laptop on my home network.  After much trial and error, I finally had to put the server in the lappy's host file and the lappy in the server's host file, as well as basically disable the fire wall on the server.  I don't think I'd have had near the issues if the hypervisor had been on the domain.  If you are on a domain and having issues, start with <a href="http://code.msdn.microsoft.com/HVRemote" target="_blank">HVRemote</a>, as it seems to solve many others' issues.
+
+Once you can see the server from your laptop (or other boxes), you can use the Hyper-V management tool to create and start VMs.  This is where I think Hyper-V Server really sells itself.  I am already familiar with Hyper-V, so adding another server node was easy.  Here's what it looks like:
+
+[caption id="attachment_123" align="alignleft" width="128" caption="Hyper-V Manager with Hyper-V Server added."]<a href="http://ruprict.files.wordpress.com/2009/01/hypervmanager.png"><img class="size-thumbnail wp-image-123" title="Hyper-V Manager" src="http://ruprict.files.wordpress.com/2009/01/hypervmanager.png?w=128" alt="Hyper-V Manager with Hyper-V Server added." width="128" height="69" /></a>[/caption]
+
+So, you can see the server and my laptop in the manager window.  Really nice.  Plus, since I went with Hyper-V, I was able to copy one of my Virtual Hard Drives (vhd) from a lappy VM to the server and create a new VM on the server from it.  In other words, moving VMs to the server is WAY easy.  Creating new VMs is also a snap.  The Hyper-V New Virtual Machine Wizard allows you to create a new vhd or select an existing one.  If you create a new vhd, the installation options consist of  waiting til later, using a CD/DVD, or using an .iso image file.  I did the later, and it was great.  I just keep iso files on the hypervisor, and point to them as needed.  Very nice.
+
+I've been working for roughly a week now using the VMs on the hypervisor only, and it has been great.  The laptop is faster, the VMs are much faster, and I am getting more stuff done.  All in all, I think Hyper-V Server is a great solution for developers that want to server up VMs in a easy and fast manner.
+<div class="zemanta-pixie" style="margin-top:10px;height:15px;"><a class="zemanta-pixie-a" title="Zemified by Zemanta" href="http://reblog.zemanta.com/zemified/57b124ff-ea1b-4448-bb3b-75c3157b62d2/"><img class="zemanta-pixie-img" style="border:medium none;float:right;" src="http://img.zemanta.com/reblog_e.png?x-id=57b124ff-ea1b-4448-bb3b-75c3157b62d2" alt="Reblog this post [with Zemanta]" /></a></div>

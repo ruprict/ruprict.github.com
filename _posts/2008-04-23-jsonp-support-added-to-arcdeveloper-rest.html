@@ -1,0 +1,95 @@
+--- 
+layout: post
+title: JSONP Support Added to ArcDeveloper REST
+tags: 
+- ArcDeveloper
+- REST
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1208911253"
+---
+I have <a title="Other blatherings" href="http://ruprict.wordpress.com/tag/arcdeveloper/" target="_blank">previously blogged</a> about the ArcDeveloper REST Service that a few of us ESRI .NET developers have thrown together.  Until today, the only format you could request was GeoJSON.  Now, through the miracle of something-I-needed-on-a-project, I have added JSONP support to the project.   For those of you who don't know what <a title="JSONP" href="http://bob.pythonmac.org/archives/2005/12/05/remote-json-jsonp/" target="_blank">JSONP </a>is, it is JSON wrapped in a javascript call.  So, if you have JSON that looks like:
+<div style="background:#CCC;border:thin dotted #FFF;font-size:x-small;overflow:auto;">{
+"type": "FeatureCollection",
+"features": [
+{
+"type": "Feature",
+"geometry": null,
+"properties": {
+"Facility": "SI",
+"Shape_Area": "4.93182604749608E-05"}
+},
+{
+"type": "Feature",
+"geometry": null,
+"properties": {
+"Facility":"Test",
+"Shape_Area": "2.27729778462692E-05",
+}
+} ]
+}</div>
+With JSONP, it looks like:
+<div style="background:#CCC;border:thin dotted #FFF;font-size:x-small;overflow:auto;">javascriptFunc('{
+"type": "FeatureCollection",
+"features": [
+{
+"type": "Feature",
+"geometry": null,
+"properties": {
+"Facility": "SI",
+"Shape_Area": "4.93182604749608E-05"}
+},
+{
+"type": "Feature",
+"geometry": null,
+"properties": {
+"Facility":"Test",
+"Shape_Area": "2.27729778462692E-05",
+}
+} ]
+}');</div>
+In a nutshell, JSONP was created to get around the pesky <a title="0,0" href="http://en.wikipedia.org/wiki/Same_origin_policy" target="_blank">s</a><a href="http://en.wikipedia.org/wiki/Same_origin_policy" target="_blank">ame-origin policy</a> that browsers use to keep AJAX calls from making requests to a domain outside of the hosted site.  This can be a real bugaboo, especially when you have a distributed application where, for example, ArcGIS Server is on one box, your web server is on another, and Sharepoint is on another.  With JSONP, the client call can be wrapped in a &lt;script&gt; tag, which does not have to adhere to the same-origin policy.  The &lt;script&gt; tag comes back with your JSON wrapped in a javascript call you specify (more on this is a second) and voila! we are cooking with gas.
+
+In order to successfully call a JSONP service, you have to specify the callback function as a querystring parameter.  As such, you have to know which querystring parameter the service is expecting to hold the callback function name.  So, if we define a local javascript function called 'jsonpCallComplete(json)', then the script block comes back as:
+<div style="background:#CCC;border:thin dotted #FFF;font-size:x-small;overflow:auto;">&lt;script type='text/javascript' src="http://otherdomainserver/restservice/query?format=jsonp&amp;callbackFun=jsonCallComplete' &gt; jsonpCallComplete('{"property":"value" ...etc...}');&lt;/script&gt;
+
+</div>
+Which fires your javascript call, passing in the JSON for you to do with as you please.
+
+As a result of added this to the ArcDeveloper REST API, I had to make some "breaking" changes to the project.  Firstly, the format must now be specified using the 'f' querystring parameter (i.e., f=json or f=jsonp)  which maps to a 'format' parameter on the service methods.  The value of the 'f' querystring parameter must match the name of the formatter, as configured in the Windsor configuration.  Secondly, in order to pass the callback function name to the JSONP formatter, I chose to basically pass ALL the querystring paramters to every Formatter.  That way, if another formatter needs a specific querystring parameter, it will supplied by the service manager for each request.  Check the code for more details, if you are interested.
+
+<a title="There is no fear in this" href="http://www.dojotoolkit.org" target="_blank">Dojo</a> (a pretty danged good javascript framework) has native support for JSONP services, allowing you to, in essence, treat a cross-domain AJAX call as a same-origin AJAX call.  The Dojo site has decent docs and a overview of Dojo is way beyond the scope of this post, but here is an example AJAX call to the ArcDeveloepr REST API on one box from a client site on another:
+
+(you will need to do a dojo.require('dojo.io.script') for this to work)
+<div style="background:#CCC;border:thin dotted #FFF;font-size:x-small;overflow:auto;">dojo.io.script.get({
+url:"http://gisdev02/AGSRest/rest.svc/facility/Facilities",
+content: {
+query:"name='Airport'",
+f:'jsonp' // specify the format
+},
+callbackParamName:'callback', //specify the qs param to send the javascript func name
+load:dojo.hitch(this,function(resp){
+var featurecollection=dojo.fromJson(resp);
+dojo.forEach(featurecollection.features,dojo.hitch(this,function(feat){
+var opt = createNode("option");
+opt.value=feat.properties.extent;
+opt.innerHTML=feat.properties.Facility;// SEE?  It's JSON!
+this.bookmarks.appendChild(opt);
+}));
+this.element.appendChild(this.bookmarks);})
+}
+
+</div>
+Dojo is kind enough, in this case. to call the function defined in the 'load' property of the dojo.io.script.get method above.  As far as your code knows, it's just an AJAX call, but it only works for services that support JSONP.
+
+So, that is JSONP support.  I plan on checking in the code after some of the other ArcDeveloper types chime in on my "breaking" changes (mentioned above), which should be tomorrow.
+
+By the way, for anyone developing there own JSONP services, here are a couple of things I ran into:
+<ul>
+	<li>Make sure you strip all whitespace out of the JSON before streaming it back to the client.  I used a Regex for this.</li>
+	<li>The trailing semi-colon ( ; ) on the JSONP call is, apparently, very important.</li>
+</ul>
+I'll edit the post if I hit other issues in the testing.

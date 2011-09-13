@@ -1,0 +1,271 @@
+--- 
+layout: post
+title: "The Bitter Coder Tutorials, Binsor Style: XIV Startable Facilities"
+tags: 
+- Binsor
+- Castle
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1224116986"
+  _edit_last: "3307217"
+---
+Previous posts in the series:
+<ul>
+	<li><a href="http://ruprict.wordpress.com/2008/07/11/the-bitter-coder-tutorials-binsor-style/" target="_blank">Part 1</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/12/the-bitter-coder-tutorials-binsor-style-arrays/" target="_blank">Part 2</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/14/the-bitter-coder-tutorials-binsor-style-iii-dictonaries/" target="_blank">Part 3</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/16/the-bitter-coder-tutorials-binsor-style-iv-switching-configs/" target="_blank">Part 4</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/28/the-bitter-coder-tutorial-binsor-style-v-configuration-parameters/" target="_blank">Part 5</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/08/04/the-bitter-coder-tutorials-binsor-style-vi-switching-lifestyles/" target="_blank">Part 6</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/08/11/the-bitter-coder-tutorials-binsor-style-vii-switching-implementations/" target="_blank">Part 7</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/08/18/the-bitter-coder-tutorials-viii-referencing-instances-by-key/" target="_blank">Part 8</a></li>
+	<li><a href="http://ruprict.wordpress.com/?p=58" target="_blank">Part 9</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/09/02/the-bitter-coder-tutorials-binsor-style-part-x-setter-injection/" target="_self">Part 10</a></li>
+	<li><a href="http://ruprict.wordpress.com/?p=66" target="_blank">Part 11</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/10/01/the-bitter-coder-tutorials-binsor-style-part-xii-decorators/" target="_blank">Part 12</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/10/06/the-bitter-coder-tutorials-binsor-style-injecting-service-arrays/" target="_blank">Part 13</a></li>
+</ul>
+<div>The last (until Alex writes more) of our Bitter Binsor tutorials is here.  Today, we focus on the Startable Facility, which is explained in Alex's <a href="http://blog.bittercoder.com/PermaLink,guid,a621ddda-acb5-4afd-84ff-faafb96a2fa1.aspx" target="_blank">post</a>.  The link to the wiki in Alex's post is no good, so try <a href="http://www.castleproject.org/container/facilities/trunk/startable/index.html" target="_blank">here </a>for more info on the facility.  Basically, something is startable if it has the Start/Stop controllable lifecycle, like a web server.  In Castle, to be considered Startable you have to implement the IStartable interface:</div>
+<div><!-- {\rtf1\ansi\ansicpg\lang1024\noproof1252\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red128\green128\blue128;\red255\green255\blue255;\red0\green128\blue0;\red0\green0\blue0;\red0\green0\blue255;\red43\green145\blue175;}??\fs20 \cf1 ///\cf3  \cf1 &lt;summary&gt;\par ??\cf0 \tab \cf1 ///\cf3  Interface for components that wish to be started by the container\par ??\cf0 \tab \cf1 ///\cf3  \cf1 &lt;/summary&gt;\par ??\cf0 \tab \cf5 public\cf0  \cf5 interface\cf0  \cf6 IStartable\par ??\cf0 \tab \{\par ??\tab \tab \cf1 ///\cf3  \cf1 &lt;summary&gt;\par ??\cf0 \tab \tab \cf1 ///\cf3  Starts this instance.\par ??\cf0 \tab \tab \cf1 ///\cf3  \cf1 &lt;/summary&gt;\par ??\cf0 \tab \tab \cf5 void\cf0  Start();\par ??\par ??\tab \tab \cf1 ///\cf3  \cf1 &lt;summary&gt;\par ??\cf0 \tab \tab \cf1 ///\cf3  Stops this instance.\par ??\cf0 \tab \tab \cf1 ///\cf3  \cf1 &lt;/summary&gt;\par ??\cf0 \tab \tab \cf5 void\cf0  Stop();\par ??\tab \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:gray;">///</span><span style="color:green;"> </span><span style="color:gray;">&lt;summary&gt;</span></p>
+<p style="margin:0;"><span style="color:gray;">///</span><span style="color:green;"> Interface for components that wish to be started by the container</span></p>
+<p style="margin:0;"><span style="color:gray;">///</span><span style="color:green;"> </span><span style="color:gray;">&lt;/summary&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">interface</span> <span style="color:#2b91af;">IStartable</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:gray;">///</span><span style="color:green;"> </span><span style="color:gray;">&lt;summary&gt;</span></p>
+<p style="padding-left:30px;margin:0;"><span style="color:gray;">///</span><span style="color:green;"> Starts this instance.</span></p>
+<p style="padding-left:30px;margin:0;"><span style="color:gray;">///</span><span style="color:green;"> </span><span style="color:gray;">&lt;/summary&gt;</span></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">void</span> Start();</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:gray;">///</span><span style="color:green;"> </span><span style="color:gray;">&lt;summary&gt;</span></p>
+<p style="padding-left:30px;margin:0;"><span style="color:gray;">///</span><span style="color:green;"> Stops this instance.</span></p>
+<p style="padding-left:30px;margin:0;"><span style="color:gray;">///</span><span style="color:green;"> </span><span style="color:gray;">&lt;/summary&gt;</span></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">void</span> Stop();</p>
+<p style="margin:0;">}</p>
+
+</div>
+</div>
+<div>Once you register the Startable Facility with the Windsor Container, it will attempt to create and call .Start() on any startable component, provided all the dependencies have been satisfied.  So, every time a component is registered with the container, Windsor checks to see if a startable component has all dependencies satisfied and can be started.  Alex discusses the startable facility more in his post, so make sure you read it too.</div>
+<div>Let's create the LameHttpServer using this code:</div>
+<div><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 public\cf0  \cf1 class\cf0  \cf4 LameHttpServer\cf0 :\cf4 IStartable\cf0  \par ??    \{\par ??        \cf1 private\cf0  \cf1 string\cf0  _path;\par ??        \cf1 private\cf0  \cf4 HttpListener\cf0  _listener;\par ??        \cf1 private\cf0  \cf4 Thread\cf0  _listenerThread;\par ??        \cf1 private\cf0  \cf4 ILogger\cf0  _logger;\par ??\par ??        \cf1 public\cf0  \cf4 ILogger\cf0  Logger\par ??        \{\par ??            \cf1 get\par ??\cf0             \{\par ??                \cf1 if\cf0  (_logger == \cf1 null\cf0 )\par ??                    _logger = \cf4 NullLogger\cf0 .Instance;\par ??                \cf1 return\cf0  _logger;\par ??            \}\par ??            \cf1 set\cf0  \{ _logger = \cf1 value\cf0 ; \}\par ??        \}\par ??\par ??        \cf1 public\cf0  LameHttpServer(\cf1 string\cf0  prefix, \cf1 string\cf0  path)\par ??        \{\par ??            _path = path;\par ??            _listener= \cf1 new\cf0  \cf4 HttpListener\cf0 ();\par ??            _listener.Prefixes.Add(prefix);\par ??        \}\par ??\par ??\par ??        \cf1 public\cf0  \cf1 void\cf0  Start()\par ??        \{\par ??            Logger.Debug(\cf5 "Starting LameWebService..."\cf0 );\par ??            _listener.Start();\par ??            _listenerThread = \cf1 new\cf0  \cf4 Thread\cf0 (RequestWorker);\par ??            _listenerThread.Start();\par ??            Logger.Info(\cf5 "LameWebService started..."\cf0 );\par ??        \}\par ??\par ??        \cf1 public\cf0  \cf1 void\cf0  Stop()\par ??        \{\par ??            Logger.Debug(\cf5 "Stopping LameWebService..."\cf0 );\par ??            _listenerThread.Abort();\par ??            _listener.Stop();\par ??            Logger.Info(\cf5 "LameWebService stopped."\cf0 );\par ??        \}\par ??\par ??        \cf1 private\cf0  \cf1 void\cf0  RequestWorker()\par ??        \{\par ??            \cf1 while\cf0  (\cf1 true\cf0 )\par ??            \{\par ??                \cf4 HttpListenerContext\cf0  _context = \cf1 null\cf0 ;\par ??                \cf1 try\par ??\cf0                 \{\par ??                    _context=_listener.GetContext();\par ??                \} \cf1 catch\cf0  (\cf4 ObjectDisposedException\cf0  ex)\par ??                \{\par ??                    \cf1 return\cf0 ;\par ??                \}\par ??                ServeContext(_context.Response, _path);\par ??\par ??            \}\par ??        \}\par ??\par ??        \cf1 private\cf0  \cf1 void\cf0  ServeContext(\cf4 HttpListenerResponse\cf0  response, \cf1 string\cf0  _path)\par ??        \{\par ??            \cf1 string\cf0  content = \cf4 File\cf0 .ReadAllText(_path);\par ??            \cf1 byte\cf0 [] buffer = \cf4 Encoding\cf0 .UTF8.GetBytes(content);\par ??            response.ContentLength64 = buffer.Length;\par ??\par ??            \cf4 Stream\cf0  output = response.OutputStream;\par ??            output.Write(buffer, 0 , buffer.Length);\par ??            output.Close();\par ??\par ??        \}\par ??    \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">LameHttpServer</span>:<span style="color:#2b91af;">IStartable</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">string</span> _path;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:#2b91af;">HttpListener</span> _listener;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:#2b91af;">Thread</span> _listenerThread;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:#2b91af;">ILogger</span> _logger;</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:#2b91af;">ILogger</span> Logger</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">get</span></p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;"><span style="color:blue;">if</span> (_logger == <span style="color:blue;">null</span>)</p>
+<p style="padding-left:90px;margin:0;">_logger = <span style="color:#2b91af;">NullLogger</span>.Instance;</p>
+<p style="padding-left:90px;margin:0;"><span style="color:blue;">return</span> _logger;</p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">set</span> { _logger = <span style="color:blue;">value</span>; }</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> LameHttpServer(<span style="color:blue;">string</span> prefix, <span style="color:blue;">string</span> path)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;">_path = path;</p>
+<p style="padding-left:60px;margin:0;">_listener= <span style="color:blue;">new</span> <span style="color:#2b91af;">HttpListener</span>();</p>
+<p style="padding-left:60px;margin:0;">_listener.Prefixes.Add(prefix);</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">void</span> Start()</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;">Logger.Debug(<span style="color:#a31515;">"Starting LameWebService..."</span>);</p>
+<p style="padding-left:60px;margin:0;">_listener.Start();</p>
+<p style="padding-left:60px;margin:0;">_listenerThread = <span style="color:blue;">new</span> <span style="color:#2b91af;">Thread</span>(RequestWorker);</p>
+<p style="padding-left:60px;margin:0;">_listenerThread.Start();</p>
+<p style="padding-left:60px;margin:0;">Logger.Info(<span style="color:#a31515;">"LameWebService started..."</span>);</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">void</span> Stop()</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;">Logger.Debug(<span style="color:#a31515;">"Stopping LameWebService..."</span>);</p>
+<p style="padding-left:60px;margin:0;">_listenerThread.Abort();</p>
+<p style="padding-left:60px;margin:0;">_listener.Stop();</p>
+<p style="padding-left:60px;margin:0;">Logger.Info(<span style="color:#a31515;">"LameWebService stopped."</span>);</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">void</span> RequestWorker()</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">while</span> (<span style="color:blue;">true</span>)</p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#2b91af;">HttpListenerContext</span> _context = <span style="color:blue;">null</span>;</p>
+<p style="padding-left:90px;margin:0;"><span style="color:blue;">try</span></p>
+<p style="padding-left:90px;margin:0;">{</p>
+<p style="padding-left:120px;margin:0;">_context=_listener.GetContext();</p>
+<p style="padding-left:90px;margin:0;">} <span style="color:blue;">catch</span> (<span style="color:#2b91af;">ObjectDisposedException</span> ex)</p>
+<p style="padding-left:90px;margin:0;">{</p>
+<p style="padding-left:120px;margin:0;"><span style="color:blue;">return</span>;</p>
+<p style="padding-left:90px;margin:0;">}</p>
+<p style="padding-left:90px;margin:0;">ServeContext(_context.Response, _path);</p>
+<p style="padding-left:60px;margin:0;"></p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">void</span> ServeContext(<span style="color:#2b91af;">HttpListenerResponse</span> response, <span style="color:blue;">string</span> _path)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">string</span> content = <span style="color:#2b91af;">File</span>.ReadAllText(_path);</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">byte</span>[] buffer = <span style="color:#2b91af;">Encoding</span>.UTF8.GetBytes(content);</p>
+<p style="padding-left:60px;margin:0;">response.ContentLength64 = buffer.Length;</p>
+<p style="padding-left:60px;margin:0;"></p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;">Stream</span> output = response.OutputStream;</p>
+<p style="padding-left:60px;margin:0;">output.Write(buffer, 0 , buffer.Length);</p>
+<p style="padding-left:60px;margin:0;">output.Close();</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+</div>
+<div>Looking at the class, we need a couple of configuration parameters as well as a dependency on  ILogger.  We'll use the Castle Logging Facility for that, which is probably the facility I use most.  You should check it out.  Anyway, here's our Binsor:</div>
+<pre style="border:thin solid black;font-size:x-small;">facility "startable.facility", StartableFacility
+
+facility "logging.facility",LoggingFacility:
+  loggingApi=LoggerImplementation.Console
+
+component "lame.http", LameHttpServer:
+    prefix="http://*:8089/"
+    path="lame.html"</pre>
+So, we register the facilities discussed earlier.  BTW, in order to resolve the facilities, I had to add the following to the top of Windsor.boo, in the import section:
+<pre style="border:thin solid black;font-size:x-small;">import Castle.Facilities.Startable from Castle.MicroKernel
+import Castle.Facilities.Logging</pre>
+Also, I added  a reference to the Castle.Facilites.Logging assembly.  I already had a reference for Castle.MicroKernel from a previous post.
+
+Let's look at our console code to crank up the server:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 public\cf0  \cf1 static\cf0  \cf1 void\cf0  Step14()\par ??        \{\par ??            GetPage();\par ??            container.Dispose();\par ??            GetPage();\par ??            \par ??        \}\par ??\par ??        \cf1 private\cf0  \cf1 static\cf0  \cf1 void\cf0  GetPage()\par ??        \{\par ??            \cf4 Console\cf0 .WriteLine(\cf5 "\\r\\nClient: requesting http://localhost:8089/..."\cf0 );\par ??            \cf1 try\par ??\cf0             \{\par ??                \cf4 WebClient\cf0  client = \cf1 new\cf0  \cf4 WebClient\cf0 ();\par ??                \cf1 string\cf0  content = client.DownloadString(\cf5 "http://localhost:8089/"\cf0 );\par ??                \cf4 Console\cf0 .WriteLine(\cf5 "Client: success, content follows.\\r\\n\\r\\n \{0\}"\cf0 , content);\par ??            \} \cf1 catch\cf0  (\cf4 WebException\cf0  ex)\par ??            \{\par ??                \cf4 Console\cf0 .WriteLine(\cf5 "Client: Exception occurred, message \{0\}"\cf0 ,ex.Message);\par ??            \}\par ??        \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">static</span> <span style="color:blue;">void</span> Main(string[] args)</p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;">container = new WindsorContainer().Install(BinsorScript.FromFile("windsor.boo"));</p>
+<p style="padding-left:30px;margin:0;">GetPage();</p>
+<p style="padding-left:30px;margin:0;">container.Dispose();</p>
+<p style="padding-left:30px;margin:0;">GetPage();</p>
+<p style="margin:0;"></p>
+<p style="margin:0;">}</p>
+<p style="margin:0;"></p>
+<p style="margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">static</span> <span style="color:blue;">void</span> GetPage()</p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"\r\nClient: requesting http://localhost:8089/..."</span>);</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">try</span></p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;">WebClient</span> client = <span style="color:blue;">new</span> <span style="color:#2b91af;">WebClient</span>();</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">string</span> content = client.DownloadString(<span style="color:#a31515;">"http://localhost:8089/"</span>);</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"Client: success, content follows.\r\n\r\n {0}"</span>, content);</p>
+<p style="padding-left:30px;margin:0;">} <span style="color:blue;">catch</span> (<span style="color:#2b91af;">WebException</span> ex)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"Client: Exception occurred, message {0}"</span>,ex.Message);</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+So, as can be seen above, we
+<ol>
+	<li>Create the container, which kicks off the server, coz it's all Startable and stuff.</li>
+	<li>Call GetPage().</li>
+	<li>Dispose of the conatainer.</li>
+	<li>Call GetPage() again.</li>
+	<li>Wonder aloud of Alex minds plagiarism.</li>
+</ol>
+Here's the results:
+<pre><strong>[Debug] 'BitterCoder.Tutorials.Binsor.Core.LameHttpServer' Starting LameWebService...
+[Info] 'BitterCoder.Tutorials.Binsor.Core.LameHttpServer' LameWebService started...
+
+Client: requesting http://localhost:8089/...
+Client: success, content follows.
+
+ &lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"&gt;
+&lt;html&gt;
+        &lt;head&gt;
+                &lt;title&gt;&lt;/title&gt;
+        &lt;/head&gt;
+        &lt;body&gt;
+             &lt;h1&gt;Lame.html&lt;/h1&gt;
+        &lt;h2&gt;Welcome to lame.html file&lt;/h2&gt;
+        &lt;p&gt;This is the contents of the lame.html file, neat huh?&lt;/p&gt;
+        &lt;/body&gt;
+&lt;/html&gt;
+[Debug] 'BitterCoder.Tutorials.Binsor.Core.LameHttpServer' Stopping LameWebService...
+[Info] 'BitterCoder.Tutorials.Binsor.Core.LameHttpServer' LameWebService stopped.
+
+Client: requesting http://localhost:8089/...
+Client: Exception occurred, message Unable to connect to the remote server</strong></pre>
+The error at the end of the results is due to us disposing of the container, which decommisions all the components in the container.  Alex explains this well...so read what he said.
+
+So, I am gonna modify Alex's final example where he demonstrates lifestyles and their effect on Startable facilities.  The only difference, really, is I am  going to show you what the Binsor looks like to control the lifestyle of a component.
+
+Here's our StartableExperiment:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 public\cf0  \cf1 class\cf0  \cf4 StartableExperiment\cf0  : \cf4 IStartable\par ??\cf0     \{\par ??        \cf1 private\cf0  \cf1 static\cf0  \cf1 int\cf0  _count;\par ??        \cf1 private\cf0  \cf1 readonly\cf0  \cf1 int\cf0  _number;\par ??\par ??        \cf1 public\cf0  StartableExperiment()\par ??        \{\par ??            _number = ++_count;\par ??        \}\par ??\par ??\cf1         #region\cf0  IStartable Members\par ??\par ??        \cf1 public\cf0  \cf1 void\cf0  Start()\par ??        \{\par ??            \cf4 Console\cf0 .WriteLine(\cf5 "Started #\{0\}"\cf0 , _number);\par ??        \}\par ??\par ??        \cf1 public\cf0  \cf1 void\cf0  Stop()\par ??        \{\par ??            \cf4 Console\cf0 .WriteLine(\cf5 "Stopped #\{0\}"\cf0 , _number);\par ??        \}\par ??\par ??\cf1         #endregion\par ??\cf0     \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">StartableExperiment</span> : <span style="color:#2b91af;">IStartable</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">static</span> <span style="color:blue;">int</span> _count;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">readonly</span> <span style="color:blue;">int</span> _number;</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> StartableExperiment()</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;">_number = ++_count;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;"> #region</span> IStartable Members</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">void</span> Start()</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"Started #{0}"</span>, _number);</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">void</span> Stop()</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"Stopped #{0}"</span>, _number);</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;"> #endregion</span></p>
+<p style="margin:0;">}</p>
+
+</div>
+And the Binsor:
+<pre>component "startable.exp", StartableExperiment:
+    @lifestyle=LifestyleType.Transient</pre>
+(You need to import Castle.Core to get the LifestyleType enum)
+
+Running the following program code:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red43\green145\blue175;\red255\green255\blue255;\red0\green0\blue0;}??\fs20 \cf1 StartableExperiment\cf0  exp1 = container.Resolve&lt;\cf1 StartableExperiment\cf0 &gt;();\par ??            container.Release(exp1);\par ??            \cf1 StartableExperiment\cf0  exp2 = container.Resolve&lt;\cf1 StartableExperiment\cf0 &gt;();\par ??            container.Release(exp2);} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:#2b91af;">StartableExperiment</span> exp1 = container.Resolve&lt;<span style="color:#2b91af;">StartableExperiment</span>&gt;();</p>
+<p style="margin:0;">container.Release(exp1);</p>
+<p style="margin:0;"><span style="color:#2b91af;">StartableExperiment</span> exp2 = container.Resolve&lt;<span style="color:#2b91af;">StartableExperiment</span>&gt;();</p>
+<p style="margin:0;">container.Release(exp2);</p>
+
+</div>
+yields:
+
+<strong>Started #1
+Started #2
+Stopped #2
+Started #3
+Stopped #3
+Stopped #1</strong>
+
+If I change the @lifestyle attribute in the Binsor to LifestyleType.Singleton, I get:
+
+<strong>Started #1
+Stopped #1</strong>
+
+And that's Startable Facilities and their lifestyles, from a Binsor point-of-view.
+
+So, I hope someone enjoyed the series.  Thanks again to Alex for his tutorials.  They were a big rung in my learning ladder for Windsor.
+
+I created a VS.NET project with all the code from this series.  If you're interested, hit me at glenn(dot)goodrich(at)gmail.com.

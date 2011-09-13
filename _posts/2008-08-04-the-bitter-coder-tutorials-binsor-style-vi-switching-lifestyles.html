@@ -1,0 +1,69 @@
+--- 
+layout: post
+title: "The Bitter Coder Tutorials, Binsor Style VI: Switching Lifestyles"
+tags: 
+- Binsor
+- Castle
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1217956720"
+  _edit_last: "3307217"
+---
+Previous posts in the series:
+<ul>
+	<li><a href="http://ruprict.wordpress.com/2008/07/11/the-bitter-coder-tutorials-binsor-style/" target="_blank">Part 1</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/12/the-bitter-coder-tutorials-binsor-style-arrays/" target="_blank">Part 2</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/14/the-bitter-coder-tutorials-binsor-style-iii-dictonaries/" target="_blank">Part 3</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/16/the-bitter-coder-tutorials-binsor-style-iv-switching-configs/" target="_blank">Part 4</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/28/the-bitter-coder-tutorial-binsor-style-v-configuration-parameters/" target="_blank">Part 5</a></li>
+</ul>
+In <a href="http://blog.bittercoder.com/PermaLink,guid,dfebb0b5-c5e8-4de1-8551-b7e7fe1f14ce.aspx" target="_blank">tutorial #6</a>, Alex discusses lifestyles and how to muck about with them.  If you are unfamiliar with what lifestyles are in this context, go read his post first (which you should be doing anyway)
+
+So, we create the same adding service component (minus the spelling errors ;)):
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red91\green105\blue106;\red26\green24\blue21;\red222\green222\blue203;\red121\green151\blue84;\red199\green199\blue165;\red150\green120\blue120;\red140\green112\blue80;}??\fs30 \cf1\cb2\highlight2 public\cf3  \cf1 class\cf3  \cf4 AddingService\par ??\cf3     \{\par ??        \cf1 private\cf3  \cf1 int\cf3  \cf5 _total\cf3  \cf6 =\cf3  \cf7 0\cf3 ;\par ??        \cf1 public\cf3  \cf1 void\cf3  \cf5 AddAmount\cf3 (\cf1 int\cf3  \cf5 amount\cf3 )\par ??        \{\par ??            \cf5 _total\cf3  \cf6 +=\cf3  \cf5 amount\cf3 ;\par ??        \}\par ??\par ??        \cf1 public\cf3  \cf1 int\cf3  \cf5 Total\par ??\cf3         \{\par ??            \cf1 get\cf3  \{ \cf1 return\cf3  \cf5 _total\cf3 ; \}\par ??        \}\par ??    \}} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;"><span style="color:#5b696a;">public</span> <span style="color:#5b696a;">class</span> <span style="color:#799754;">AddingService</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">private</span> <span style="color:#5b696a;">int</span> <span style="color:#c7c7a5;">_total</span> <span style="color:#967878;">=</span> <span style="color:#8c7050;">0</span>;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">public</span> <span style="color:#5b696a;">void</span> <span style="color:#c7c7a5;">AddAmount</span>(<span style="color:#5b696a;">int</span> <span style="color:#c7c7a5;">amount</span>)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#c7c7a5;">_total</span> <span style="color:#967878;">+=</span> <span style="color:#c7c7a5;">amount</span>;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;"> </p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">public</span> <span style="color:#5b696a;">int</span> <span style="color:#c7c7a5;">Total</span></p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#5b696a;">get</span> { <span style="color:#5b696a;">return</span> <span style="color:#c7c7a5;">_total</span>; }</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+And we add it to the Windsor configuration, like so:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red222\green222\blue203;\red26\green24\blue21;}??\fs30 \cf1\cb2\highlight2 component "adding.service", AddingService} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;">component "adding.service", AddingService</p>
+
+</div>
+Nothing special.  When we run the code we get:
+
+<strong>You have counted 75 sheep and herded 75 angry cats</strong>
+
+This seems a bit odd, as the container is using the same instance for both AddingService requests.  Let's make it give us a new one for each request.  This is accomplished by adding the "lifestyle" attribute to the component:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red222\green222\blue203;\red26\green24\blue21;}??\fs30 \cf1\cb2\highlight2 component "adding.service", AddingService:\par ??\tab @lifestyle="transient"} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;">component "adding.service", AddingService:</p>
+<p style="padding-left:30px;margin:0;">@lifestyle="transient"</p>
+
+</div>
+Notice the "@" sign, which tells Binsor to put this attribute on the Windsor component, but not the class instance (I can't figure out a better way to word that.)  Now, when we run it, we get:
+
+<strong>You have counted 60 sheep and herded 15 angry cats</strong>
+
+Snot on.  Alex goes on to say how you can add an attribute on the class to indicate it's lifestyle.  That isn't really relevent to what I'm doing here, but you should check it out all the same.
+
+Coming up....Switching Implementations, which is where a DI container really starts to make sense.

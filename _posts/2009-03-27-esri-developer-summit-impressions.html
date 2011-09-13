@@ -1,0 +1,42 @@
+--- 
+layout: post
+title: ESRI Developer Summit Impressions
+tags: 
+- ArcDeveloper
+- ESRI
+- Flex
+- REST
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1238155756"
+  _edit_last: "3307217"
+---
+I am returning to Charlotte in the morning after a nerd-vigorating week in Palm Springs at the <a href="http://www.esri.com/events/devsummit/index.html" target="_blank">ESRI Developers Summit</a>.  If you didn't get a chance to go, don't fret as ESRI is posting all of the sessions and code from the week.  Overall, I'll have to say that this was a great event and the best developers summit yet.   Seeing all of our GIS nerd peers from around the world is often interesting and always informative.
+
+The plenary session highlighted much of what is coming in 9.3.1 and 9.4, not the least of which was <span class="zem_slink">ArcExplorer</span> 900.  It's been Office 2007-ized (ribbon, etc) and is a world away from the previous versions of AGX.  The coolest feature is a Presentation Mode that allows you to create "slides" that include maps and graphics and other things that will likely make it my presentation tool of choice.  It starts an open beta (I think) on April 6th, so get in on it and see what I am talking about.
+
+The <span class="zem_slink">ArcGIS</span> Online sharing options that are coming in 9.3.1 are interesting as well.  Fueled by the introduction of "layer packages" which allow you to package data and symbology together.  This data can be uploaded to ArcGIS Online and shared with your friends or the whole planet.  Picture clicking on a hyperlink and having <span class="zem_slink">ArcMap</span> open and data being added to the map document.  It was pretty sassy.    ArcGIS Online also has a ton more basemaps, with Virtual Earth basemaps on the way.
+
+Other tidbits:
+<ul>
+	<li>9.4 and RESTful editing with ArcGIS Server.  I think that will change the game completely, making ArcMap the tool of the serious cartographer while allowing the data owners to change the data.</li>
+	<li>Also, 9.4 comes with major changes to the GDB Schema by reducing the number of tables from 35 to FOUR (that's right, FOUR).</li>
+	<li>The ArcGIS Server Silverlight API was probably the queen of the ball, with much of the Twittersphere fawning over it.</li>
+</ul>
+I went a bit against the grain, forgoing the Silverlight sessions for the Flex sessions.  The Flex sessions were really good, showing how to cluster point data, create custom tool tips for features,  perform thematic mapping. and create geodetically correct circles.   The next version of the api (1.2) will add routing support as it's being added to the REST api.   I asked about adding automation support to the Flex controls, and was told they are "looking into it"  I hope so.  We are doing more and more with Flex and I plan to harvest more goodies from the summit code samples.
+
+New this year at the summit they added user presentaions, and I attended quite a few:
+<ul>
+	<li>Dave Bouwman did a presentaion on User Testing 101.  Dave's presentations are always good, and this is a topic that was dear to my heart.</li>
+	<li>Brian Noyle did a bit on ASP.NET MVC, which was so packed that I could only admire it from afar.</li>
+	<li>Chris Spagnuolo on Introduction to Agile Development was incredible.  I am going to try and get everyone at my company to watch this presentation.</li>
+	<li>Vish Uma on Harnessing Server Object Extensions was highly informative.  I think Vish may be the smartest guy I know.</li>
+</ul>
+I think my surprise session of the week was OGC Capacities of ArcGIS Server.  AGS has always has WMS, WFS, and (later) WCS support and I have never really paid much attention to them.   Our latest project has some OGC needs, so I decided to attend this session, and I am so glad I did.  Right now, at 9.3, AGS supports WFS Transactions (WFS-T) which is a standard I first heard about in that session.  In a nutshell, this means you can perform edits (insert, update, delete) of GDB features RIGHT NOW.  I had no idea this was possible.   Also, custom styling of features with SLDs means you can easily define multiple styles for your features.  In fact, 9.3.1 or 9.4 will add the ability to to on-the-fly styling using "SLD BODY" (another thing I just learned about)  which is something that we need as well.  I feel like the OGC stuff is the best kept secret of AGS.
+
+Anotehr new item this year was the presence of Twitter.  The #devsummit hashtag was tweet-heavy and, for the first time, Twitter became a very, very useful part of my conference life.  This is where the idea of Twitter really shines and I can finally say that I get it.
+
+So, head on over the the ESRI Developer Summit site, start watching presentations, and downloading code.  Oh, and get on the Twittersphere if you aren't (I am @ruprictGeek, if you wanna follow....)
+<div class="zemanta-pixie" style="margin-top:10px;height:15px;"><a class="zemanta-pixie-a" title="Zemified by Zemanta" href="http://reblog.zemanta.com/zemified/0b2ae9ef-fcdc-4e29-aa08-a0a0179695a7/"><img class="zemanta-pixie-img" style="border:medium none;float:right;" src="http://img.zemanta.com/reblog_e.png?x-id=0b2ae9ef-fcdc-4e29-aa08-a0a0179695a7" alt="Reblog this post [with Zemanta]" /></a></div>

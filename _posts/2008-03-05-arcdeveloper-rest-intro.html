@@ -1,0 +1,96 @@
+--- 
+layout: post
+title: ArcDeveloper ArcGIS Server REST API is Breathing!
+tags: 
+- ArcDeveloper
+- ArcGIS Server
+- REST
+status: publish
+type: post
+published: true
+meta: 
+  _wp_old_slug: hello-world
+---
+So, the <a href="http://www.spatiallyadjusted.com/2008/01/30/esris-web-adf-is-one-horrific-development-platform/">angst</a> around the ArcGIS Server Web ADF is well known and I shan't rehash it here (OK, just a little rehashing:  the ADF is a bloated sack of vomit) but, rather, I'll point you to the beginnings of an open source ArcGIS Server REST API (<a href="http://svn2.assembla.com/svn/arcdeveloper/ArcDeveloper.REST/">svn</a>) at ArcDeveloper.NET.  The project is very young (and always looking for contributors) and, in it's current state, has the following capabilities:
+<ul>
+	<li> You can query single features by id (must be OBJECTID, ugh)</li>
+	<li>You can query features with a where clause</li>
+	<li>You can query features with a bbox (AND a where clause, if you want)</li>
+</ul>
+In this post, I will walk through what it takes to set it up and point it at one of your ArcGIS Server services.
+<h3>What You'll Need</h3>
+Visual Studio 2008, implying .NET 3.5.  You will have to build the solution, as we haven't made an official release yet.
+
+Optionally, I would have <a href="http://www.fiddler2.com/fiddler2/" target="_blank">Fiddler</a>, <a href="http://getfirebug.com" target="_blank">Firebug</a>, and <a href="http://www.codeplex.com/JsonViewerhttp://www.codeplex.com/JsonViewer" target="_blank">JSONViewer</a>.
+<h3>Step 1: Get the source</h3>
+Using <a href="http://tortoisesvn.tigris.org/">TortoiseSVN</a> (or the svn client of your choosing), perform a checkout of the trunk (http://svn2.assembla.com/svn/arcdeveloper/ArcDeveloper.REST/trunk/)
+<h3>Step 2: Open the solution</h3>
+In the "Product" directory, you'll find the VS2008 solution file.  Like, open it or something.  It consists of 5 projects, 2 of which are test projects.  The other projects are the core interfaces and services, with the last one being a web project to show how to publish the REST service with WCF and a demo web page.
+<h3>Step 3: Build the solution</h3>
+Uh, in VS2008, select "Build Solution..."
+<h4>Step 4: Use Dave's Stuff</h4>
+So Dave Bouwman, who I think is just the cat's pajamas, has the demo site using an ArcGIS Server map service that he has been generous enough to provide.  If you look in the ArcDeveloper.REST.Web project, you'll find a config directory.  Opening up the components.config file will show where the endpoint of the map services is specified.  Looks alot like:
+<div style="background:white none repeat scroll 0 50%;font-family:Courier New;font-size:8pt;color:black;overflow:scroll;">
+<p style="margin:0;"><span style="color:blue;">&lt;</span><span style="color:#a31515;">component</span><span style="color:blue;"> </span><span style="color:red;">id</span><span style="color:blue;">=</span>"<span style="color:blue;">ags.service</span>"<span style="color:blue;"> </span><span style="color:red;">lifestyle</span><span style="color:blue;">=</span>"<span style="color:blue;">pooled</span>"<span style="color:blue;"> </span><span style="color:red;">initialPoolSize</span><span style="color:blue;">=</span>"<span style="color:blue;">2</span>"<span style="color:blue;"> </span><span style="color:red;">maxPoolSize</span><span style="color:blue;">=</span>"<span style="color:blue;">2</span>"<span style="color:blue;">   </span></p>
+<p style="margin:0;"><span style="color:blue;">                       </span><span style="color:red;">service</span><span style="color:blue;">=</span>"<span style="color:blue;">ArcDeveloper.REST.Core.Interfaces.IRESTService, ArcDeveloper.REST.Core</span>"</p>
+<p style="margin:0;"><span style="color:blue;">                       </span><span style="color:red;">type</span><span style="color:blue;">=</span>"<span style="color:blue;">ArcDeveloper.REST.ArcGIS.AGSMapService, ArcDeveloper.REST.ArcGIS</span>"<span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">   &lt;</span><span style="color:#a31515;">parameters</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">      </span><span style="color:#a31515;">&lt;name</span><span style="color:blue;">&gt;</span>TestService<span style="color:blue;">&lt;/</span><span style="color:#a31515;">name</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">      &lt;</span><span style="color:#a31515;">description</span><span style="color:blue;">&gt;</span>Base map<span style="color:blue;">&lt;/</span><span style="color:#a31515;">description</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">      &lt;</span><span style="color:#a31515;">connectionString</span><span style="color:blue;">&gt;</span>http://65.101.234.201/arcgis/services/gains/gains/MapServer<span style="color:blue;">&lt;/</span><span style="color:#a31515;">connectionString</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">   &lt;/</span><span style="color:#a31515;">parameters</span><span style="color:blue;">&gt;</span></p>
+<p style="margin:0;"><span style="color:blue;">&lt;/</span><span style="color:#a31515;">component</span><span style="color:blue;">&gt;</span></p>
+</div>
+Do you see the cool &lt;connectionString&gt; parameter?  That's Daves AGS service (I told you he was cool.)   Run the site (it uses the VS Dev server now) and click "Load Polygon".  You'll see a small polygon drawn over Yemen (erm, at least I think that is Yemen).  Change the ID and draw some more.
+
+<a href="http://ruprict.files.wordpress.com/2008/03/croppercapture10.png" title="ArcDeveloper REST API Demo Page"><img src="http://ruprict.files.wordpress.com/2008/03/croppercapture10.thumbnail.png" alt="ArcDeveloper REST API Demo Page" /></a>
+
+Here's what is happening:
+
+A HTTP GET is issued to the local web service with a URI that looks alot like:
+<pre style="overflow:scroll;"> http://localhost:xxxx/rest.svc/TestService/Flyways/10?g=true</pre>
+Let's break down the URI, shall we?   Starting with rest.svc, that is the WCF endpoint for the REST service.  "TestService" points to our configuration (from above) file and tells the service which map we want to use.  "Flyways" is the name of a layer in Dave's service.  "10" is the id of the feature we want, and "g=true" tells the service to return the geometry (there are cases where you don't want that, b/c it can make the size of the response baloon pretty quickly.)  So, that is pretty RESTy, yes?
+
+The response from that HTTP GET looks like:
+<div class="netInfoResponseText netInfoText" style="border:thin dotted black;background:#cccccc none repeat scroll 0 50%;overflow:scroll;">
+<pre>{  "type": "Feature","geometry": {"type": "Polygon",
+
+"coordinates": [
+
+[
+
+[ 44.3231, 14.2555], [43.2827,13.6294],[ 43.285, 13.6503],        (...lots more coords...)     ]
+
+},
+
+"properties": {
+
+"Ssp": "maculosus",
+
+"Species": "Burhinus capensis",
+
+"Shape_Length": "4.59630121045653",
+
+"TSN": "0",
+
+"extent": "42.9447173339071,13.6294196034485,44.3230947030963,15.0950604545328",
+
+"SpeciesCod": "BURCA",
+
+"WISDOM_SpeciesID": "557",
+
+"OBJECTID": "10",
+
+"Code": " ",
+
+"Shape.area": "1.28930099595786"
+
+}
+
+}</pre>
+</div>
+Which is valid <a href="http://www.geojson.org" target="_blank">GeoJson</a>.  Neat, eh?
+
+I know what you are saying.  "Glenn, why would I use this when ArcGIS Server 9.3 will have a REST API?? HMMM?"  Well, that is a great question.  The only answer I have is that you can use this now, contribute to it, and make the world a better place.  Also, you can learn about a lot of stuff, like REST, WCF, GeoJSON, AJAX, the <a href="http://www.castleproject.org" target="_blank">Castle Project </a>stuff, and much, much more.   Plus, there are some real brains on this project (I am not one of them) so you can sop up their wisdom as well.  Also, I heard a nasty rumor that the AGS REST API wasn't using GeoJSON, but a proprietary spatial JSON format, which is a bit disconcerting, if not totally expected.
+
+In future posts I'll break down the ArcDeveloper REST API architecture, showing how you can write your own providers and formatters.  We still have a TON of work to do on it, but we're on our way.

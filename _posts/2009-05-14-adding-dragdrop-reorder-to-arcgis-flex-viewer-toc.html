@@ -1,0 +1,165 @@
+--- 
+layout: post
+title: Adding Drag/Drop Reorder to ArcGIS Flex Viewer TOC
+tags: 
+- ArcDeveloper
+- ArcGISServer
+- Flex
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1257541865"
+---
+Wow, that is a long, clumsy title.  Google will like it, though.
+
+Anyway, I've been neck-deep in the world of Flex, focusing on the ArcGIS Server Flex API the last couple of months.  We delivered a map viewer based on Flex to a client recently, and it was a great learning experience.  ESRI released a Sample Flex Viewer component that includes the Table of Contents (TOC) sample from the code gallery.  The TOC component was originally built by Tom Hill at ESRI.  He and I have traded a couple of e-mails about adding drag and drop reorder functionality, so I thought I'd run through the basics of what it takes to get it working.
+<h2>Download the Flex Viewer</h2>
+If you haven't already, download the flex viewer from <a href="http://resources.esri.com/arcgisserver/apis/flex/index.cfm?fa=codeGalleryDetails&amp;scriptID=16270" target="_blank">here</a>.  Extract the sample SOURCE (there are two zips, binary and source...we are using the source archive)  to your development area.  I am using FlexBuilder, so my life is easy, as I can just import the existing project into the IDE.  You don't have to have FlexBuilder, but I am going to presume you know how to edit source files and compile the project.
+<h2>Modify the LiveMapsWidget</h2>
+The TOC component is used by the com.esri.solutions.flexviewer.widgets.LiveMapsWidget MXML component.  Open the source for that bad boy (the namespace==the directory).   Find the TOC component, which looks like
+<pre>&lt;toccomp:TOC id="toc" width="100%" height="100%"/&gt;</pre>
+We want to enable dragging on the component.  The TOC component extends the core Flex Tree component, so enabled drag drop is as simple as adding
+<pre>dragEnabled=true</pre>
+to the element.  If you do that and the run the viewer, you'll notice you can open the Live Maps widget (in the Globe menu)  and drag the "Lousiana Landbase" layer around.  It doesn't do much, but you can drag it.  In fact, you get a rex "X" while you drag, which means you can't drop it anywhere.  So, how do we get rid of that pesky red "X"?   We have to tell the <a href="http://livedocs.adobe.com/flex/3/langref/mx/managers/DragManager.html" target="_blank">DragManager </a>that the TOC will accept a drag/drop.  The DragManager is a Flex class that maanged drag and drop operations.  Google it for more info (sorry, but I have to constrain the post ot it will go War and Peace on me)   The time to tell the DragManager about the openness of the TOC is when something is dragged (?  drug?) over it.  We do this with the dragEnter event.  So, adddragEnter
+<pre>dragEnter="onDragEnter(event)"</pre>
+to the toc element.  Now we have to write the onDragEnter  method.  In the mx:Script area of LiveMapsWidget.mxml, copy this code:
+
+[sourcecode language="java"]
+			private function onDragEnter(event:DragEvent):void{
+				DragManager.acceptDragDrop(event.currentTarget as TOC);
+				if ((event.currentTarget as TOC)==null)
+				{
+					DragManager.showFeedback(DragManager.NONE);
+					event.preventDefault();
+				}
+
+			}
+[/sourcecode]
+
+This function fires when we drag something over the TOC and tells it that we are open for business.  Business is, of course, things that can be dragged and dropped.  You could put more logic in here to filter out non TOCItems, etc, but that is left as a lesson for the reader.
+
+OK,  so our red "X" is gone over the TOC (but still there if you drag a layer over the map, cool!)  but now we want it to do something when we drop the layer.  Specifically, we want it to reorder the layers.  But we only have 1 layer, so let's quickly add another.  Open up the config.xml in the src directory and add the following tag to the &lt;livemaps&gt; element:
+
+[sourcecode language="xml"]
+<mapservice label="Louisville Public Records" type="dynamic" visible="false" alpha="0.4">http://sampleserver1.arcgisonline.com/ArcGIS/rest/services/Louisville/LOJIC_PublicSafety_Louisville/MapServer</mapservice>
+[/sourcecode]
+
+Now we have two layers, making a drag/drop scenario much more compelling.  If you run the viewer you will see both our layers in the LiveMapsWidget.   Now, just like we had to tell Flex to enabled dragging on the TOC, we have to tell it to enabled dropping.  You guessed it, add
+<pre>dropEnabled="true"</pre>
+to the toc element.  Now, when you drag/drop a layer, they will reorder in the TOC, which is nice.  The map layers don't do anything, but we'll get there.  We have a problem now, though.  The Tree component makes no distinctions between services (roots, in this case) and the layers that make up those services.  This results in the ability of the user to be able to drop a map service under another map service, which is bad.  You can do a lot of checking when the drop occurs to make sure that the user hasn't dropped one service as a child of another.  I am gonna go an easier route and collapse all the roots (map services) on drag start so those crafty users can't do it.  They may not like it, but life is sometimes hard.  So, let's add a dragStart function:
+
+(on the toc)
+<pre>dragStart = "onDragStart(event)"</pre>
+(the function)
+
+[sourcecode language='java']
+			private function onDragStart(event:DragEvent):void{
+				//Close the dragged item
+				_draggedLayer=toc.selectedItem  as TocMapLayerItem;
+				var openItems:Array = toc.openItems as Array;
+				for each(var o:Object in openItems){
+					toc.expandItem(o,false);
+				}
+				//setInfoText(resourceManager.getString("resource","toc-layer-reorder"));
+			}
+[/sourcecode]
+
+K...we're getting there.  Now to the meat of what needs to happen.  When we drop the service, we need to calculate it's new index in the map, then tell the map to reorder the services.  It took me awhile to find an algorithm that worked for this, and here is why:
+<ul>
+	<li>The basemaps.  The TOC doesn't have the basemaps, so you have to take that into account when calculating the new index.</li>
+	<li>If the layer is dragged down, then you have to account for that.</li>
+	<li>The TOC indices are reversed form the map services.  So index 0 in the map is the lowest, but it's the topmost node in the TOC.</li>
+</ul>
+So, nothing overwhelming, but details.    Let's add the event to the TOC element:
+<pre>dragComplete = "onDragComplete(event)"</pre>
+and the code:
+
+[sourcecode language="java"]
+
+private function onDragComplete(event:DragEvent):void{
+ if (event.action!="move")
+ return;
+ var _roots:ArrayCollection = toc.dataProvider as ArrayCollection;
+ //Unclear why I have to do this....but I need the selectedIndex later
+ toc.selectedItem = _draggedLayer;
+ var dropIndex:uint=toc.calculateDropIndex(event);
+ // I've seen thie calculated drop index be > than the number of 
+ // services.  This usually happens when a service node is expanded,
+ // but let's just make sure.  We'll put it at the bottom of the list 
+ // in this cse.
+ if (dropIndex>_roots.length)
+ dropIndex=_roots.length;
+
+ var ind:int=0;
+ // Set in onDragStart....if it's null, get outta dogdge
+ if (_draggedLayer==null)
+ return;
+ var delta:int = _roots.length-dropIndex;
+
+ ind = delta + 1;//We have two base layers....HACK...THIS IS BAD, MAKE IT BETTER
+
+ // If the selected item is dragged down, then the index needs to account for that
+ if (toc.selectedIndex>dropIndex)
+ ind=ind-1;
+
+ toc.map.reorderLayer(_draggedLayer.layer.id,ind);
+
+ }
+
+[/sourcecode]
+
+The comments in that function go through what I am trying to do.  I'll be the first to admit that it isn't the prettiest code at the ball, but it's the one I brought so I am dancing with it (Note to self:  work on better analogies)
+
+So, you'd expect it to work now, woudln't you?  Well, it doesn't.  We have to make a minor change to the TOC to handle the layer reorder.   In the TOC.as (in src\com\esri\solutions\flexviewer\components\toc) the onLayerReorder function looks like:
+
+[sourcecode language="java"]
+
+private function onLayerReorder( event:MapEvent ):void
+ {
+ var layer:Layer = event.layer;
+ var index:int = event.index;
+
+ for (var i:int = 0; i < _tocRoots.length; i++) {
+ var item:Object = _tocRoots[i];
+ if (item is TocMapLayerItem && TocMapLayerItem(item).layer === layer) {
+ _tocRoots.removeItemAt(i);
+ _tocRoots.addItemAt(item, _tocRoots.length - index - 1);
+ break;
+ }
+ }
+ }
+
+[/sourcecode]
+<h2>Modify the TOC Code (Just a little...)</h2>
+When you run the viewer now, you'll get RangeErrors on the addItemAt line above.   So, my approach was to calculate the new TOC index by figuring out the difference between the number of layers and the new index.  Then, make sure somethign didn't go haywire and we are out of range.  See below:
+
+[sourcecode language="java"]private function onLayerReorder( event:MapEvent ):void
+ {
+ var layer:Layer = event.layer;
+ var index:int = event.index;
+ //How far did we move?
+ var addbackind:int=(map.layerIds.length-1) - event.index;
+ for (var i:int = 0; i < _tocRoots.length; i++) {
+ var item:Object = _tocRoots[i];
+ if (item is TocMapLayerItem && TocMapLayerItem(item).layer === layer) {
+ _tocRoots.removeItemAt(i);
+
+ // If we are out of range on the high end, rein it in
+ if (addbackind>_tocRoots.length)
+ addbackind=_tocRoots.length-1;
+ // If we are out of range on the low end, rein it in
+ if (addbackind<0)
+ addbackind=0;
+ _tocRoots.addItemAt(item,addbackind);
+ break;
+ }
+ }
+ }
+
+[/sourcecode]
+
+May not be the prettiest...etc, etc.  But it works.  You should now have drag/drop reoder working like a champ.  Obviously, this code could still be improved.  The biggest example is accounting for the basemaps in a cleaner fashion.  I will tell you that we used the Specification Pattern to determine if a service was a basemap, allowing the TOC to ask the specification.  I liked that, but didn't include it here to try and keep this post focused.
+
+Anyway, try it out and see how it goes.  If you have improvments or suggestions, hit me in the comments.  <a href="http://gist.github.com/raw/111748/b8329e6b060e53b153b5ea5501a6c3a2accef184/LiveMapsWidget.mxml" target="_blank">Here </a>is a link to the final LiveMapWidgets.mxml I used for this post.

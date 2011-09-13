@@ -1,0 +1,84 @@
+--- 
+layout: post
+title: Unit Testing Objects Dependent on ArcGIS Server Javascript API
+tags: 
+- Add new tag
+- ArcDeveloper
+- ArcGIS Server
+- javascript
+- Unit testing
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1271273152"
+  _edit_last: "3307217"
+---
+<a href="http://ruprict.files.wordpress.com/2010/04/arrange.png"><img class="aligncenter size-full wp-image-276" title="arrange-act-assert" src="http://ruprict.files.wordpress.com/2010/04/arrange.png" alt="" width="450" height="240" /></a>
+
+Recently, I've created a custom <a class="zem_slink" title="Dojo Toolkit" rel="homepage" href="http://dojotoolkit.org">Dojo</a> dijit that contains a esri.Map from the <a href="http://resources.esri.com/arcgisserver/apis/javascript/arcgis/" target="_blank">ArcGIS Server Javascript API</a>.  The dijit, right now, creates the map on the fly, so it calls new <strong>esri.Map(...) and map.addLayer(new esri.layers.ArcGISTiledMapServiceLayer(url)),</strong> for example.  This can cause heartburn when trying to unit test the operations that my custom dijit is performing.  I am going to run through the current (somewhat hackish) way I am performing unit tests without having to create a full blown HTML representation of the dijit.
+
+I'll be using <a href="http://visionmedia.github.com/jspec/" target="_blank">JSpec</a> for this example, so you may want to swing over to that site and brush up on the syntax, which is pretty easy to grok, especially if you've done any BDD/spec type unit testing before.
+
+The contrived, but relatively common, scenario for this post is:
+<ol>
+	<li>My custom dijit makes a call to the server to get information about some feature.</li>
+	<li>The service returns JSON with the extent of the object in question.</li>
+	<li>I want my map control to go to that extent.</li>
+</ol>
+Following the <a href="http://www.ayende.com/Wiki/Rhino+Mocks+3.5.ashx#Arrange,Act,Assert" target="_blank">Arrange-Act-Assert</a> pattern for our unit tests, the vast majority of the work here will be in the Arrange part.  I don't want to pull in the entire AGS Javascript API for my unit tests.  It's big and heavy and I am not testing it so I don't want it.    Also, I don't want to invoke the call to the server in this test.  Again, it's not really what I am testing, and it slows the tests down.  I want to test that, if my operation gets the right JSON, it sets the extent on the map properly.
+<h2>The Whole Test</h2>
+Here is the whole JSpec file:
+
+[sourcecode language="javascript"]
+describe 'VersionDiff'
+
+ before_each
+   vd = new esi.dijits.VersionDiff();
+ end
+ describe 'updateImages()'
+   it 'should change the extent of the child map'
+     //Arrange
+     esri={
+       Map:function(){
+         this.setExtent=function(obj){
+           this.extent=obj;
+         };
+       },
+       geometry:{
+         Extent:function(xmin,ymin,xmax,ymax){
+           var obj={};
+           obj.xmin=xmin;
+           obj.ymin=ymin;
+           obj.xmax=xmax;
+           obj.ymax=ymax;
+           return obj;
+         }
+       }
+     };
+     vd.childMap = new esri.Map();
+     var text = fixture(&quot;getFeatureVersionGraphics.txt&quot;)
+     text = dojo.fromJson(text)
+     //Act
+     vd.updateMapToFeatureExtent(text)
+     //Assert
+     vd.childMap.extent.xmin.should.be 7660976.8567093275
+     vd.childMap.extent.xmax.should.be 7661002.6869258471
+     vd.childMap.extent.ymin.should.be 704520.0600393787
+     vd.childMap.extent.ymax.should.be 704553.8080708608
+   end
+ end
+end
+
+[/sourcecode]
+<h2>//Arrange</h2>
+The Arrange portion of the test stubs out the methods that will be called in the esri namespace.  Since the goal of the test is to make sure my djiit changes the extent of the map, all I need to do is stub out the <strong>setExtent</strong> method on the Map.  <strong>setExtent</strong> takes an Extent object as an argument, so I create that in my local, tiny esri namespace.  Now I can set the property on my dijit  using my stubbed out map.  Thanks to<span style="text-decoration:line-through;"> closures</span> global variables (ahem), the esri namespace I just created will be available inside my function under test.  Closures are sexy, and I only know enough about them to be dangerous.  Yay!  I don't have to suck in all the API code for this little test.  That <strong>fixture</strong> function is provided by JSpec, and basically pulls in a text file that has the JSON I want to use for my test.  I created the fixture my saving the output of a call to my service, so now I don't have to invoke the service inside the unit test.
+<h2>//Act</h2>
+This is the easy part.   Call the function under test, passing in our fixture.
+<h2>//Assert</h2>
+How do I know the extent was changed?  When I created my tiny esri namespace, my <strong>esri.geometry.Extent()</strong> function returns an object that has the same xmin/ymin/xmax/ymax properties of an esri.geometry.Extent object.  The <strong>setExtent()</strong> function on the map stores this object in an <strong>extent</strong> property.  All I have to do is make sure the extent values match what was in my fixture.
+
+I didn't include the source to the operation being tested, because I don't think it adds much to the point.  Suffice it to say that it calls <strong>setExtent()</strong> on the childMap property.
+<h2>So What?</h2>
+I realize this may not be the greatest or cleanest approach, but it is serving my needs nicely.  I am sure in my next refactor of the unit tests that I'll find a new approach that makes me hate myself for this blog post.  As always, leave a comment if you have any insight or opinion.  Oh, and regardless of this test, you should really look into JSpec for javascript unit testing.  What I show here is barely the tip of what it offers.
+<div class="zemanta-pixie" style="margin-top:10px;height:15px;"><a class="zemanta-pixie-a" title="Reblog this post [with Zemanta]" href="http://reblog.zemanta.com/zemified/0d0cf6a2-7f4c-49dd-baad-673cdabc963c/"><img class="zemanta-pixie-img" style="border:none;float:right;" src="http://img.zemanta.com/reblog_e.png?x-id=0d0cf6a2-7f4c-49dd-baad-673cdabc963c" alt="Reblog this post [with Zemanta]" /></a></div>

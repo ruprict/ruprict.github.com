@@ -1,0 +1,119 @@
+--- 
+layout: post
+title: WCF and Castle Windsor Update
+tags: 
+- Castle
+- WCF
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1241710824"
+---
+My <a href="http://ruprict.wordpress.com/2008/04/01/castle-windsor-and-wcf-a-match-made-in-heaven/trackback/" target="_blank">old post</a> about the Castle Windsor <a class="zem_slink" title="Windows Communication Foundation" rel="wikipedia" href="http://en.wikipedia.org/wiki/Windows_Communication_Foundation">WCF</a> facility is a bit long in the tooth, as Mr. Craig Neuwirt and others have been hard at work improving the facility.  The <a href="http://ayende.com/Blog/archive/2009/05/05/castle-windsor-2.0-rtm-released.aspx" target="_blank">release of Windsor 2.0 </a>inspired me to attempt to go over the facility and highlight some of the new items.  In the process, I'll cover some basics, as even those have changed a bit.   I have written most of the new documentation for the WCF facility, which needs to be reviewed by Craig since some of the new stuff is above my pay grade.  The good news is that, when released, the facility will have some good documentation as well.
+
+The best place to see the new facility in action is to grab <a href="http://using.castleproject.org/display/CASTLE/Using+the+Trunk" target="_blank">Castle's trunk</a> and go thorugh the WCF Facility unit tests.  They are comprehensive and give a great example of the new features of the facility.  This post, and the documentation I wrote, are almost entirely based on those tests.  Now, on to some examples.
+<h2>Basic Server Quick Start</h2>
+The basic steps to using the WCF Facility are the same, and consist of:
+<ol>
+	<li>Create your WCF service and data contracts.</li>
+	<li>Create a service type, implementing your contract.</li>
+	<li>Create your .svc file for your service.</li>
+	<li>Configure Windsor to use the WCF Facility for your service.</li>
+</ol>
+<h3>Create WCF Service and Data Contracts</h3>
+In this very simple example, I am only going to use a service contract.  Here is my contract:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;}??\fs20 \cf1 namespace\cf0  MyService.Core.Interfaces\par ??\{\par ??    [\cf4 ServiceContract\cf0 ]\par ??    \cf1 public\cf0  \cf1 interface\cf0  \cf4 IMyService\par ??\cf0     \{\par ??        [\cf4 OperationContract\cf0 ]\par ??        \cf1 string\cf0  MyOperation1(\cf1 string\cf0  myValue);\par ??\par ??        [\cf4 OperationContract\cf0 ]\par ??        \cf1 void\cf0  ThrowError();\par ??    \}\par ??\}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">namespace</span> MyService.Core.Interfaces</p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;">[<span style="color:#2b91af;">ServiceContract</span>]</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">interface</span> <span style="color:#2b91af;">IMyService</span></p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;">[<span style="color:#2b91af;">OperationContract</span>]</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">string</span> MyOperation1(<span style="color:blue;">string</span> myValue);</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+<div class="zemanta-pixie" style="margin-top:10px;height:15px;"><a class="zemanta-pixie-a" title="Reblog this post [with Zemanta]" href="http://reblog.zemanta.com/zemified/a516a053-994a-4e6b-9421-4177e5e263aa/"><img class="zemanta-pixie-img" style="border:medium none;float:right;" src="http://img.zemanta.com/reblog_e.png?x-id=a516a053-994a-4e6b-9421-4177e5e263aa" alt="Reblog this post [with Zemanta]" /></a>So, all my operation contract does is take in a string and return a string. No big whoop.</div>
+<h3 class="zemanta-pixie" style="margin-top:10px;height:15px;">Implement the Contract</h3>
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 namespace\cf0  MyService.Core\par ??\{\par ??    \cf1 public\cf0  \cf1 class\cf0  \cf4 TheService\cf0  : \cf4 IMyService\par ??\cf0     \{\par ??        \cf1 public\cf0  \cf1 string\cf0  Prefix \{ \cf1 get\cf0 ; \cf1 set\cf0 ; \}\par ??        \cf1 public\cf0  TheService(\cf1 string\cf0  prefix)\par ??        \{\par ??            Prefix = prefix;\par ??        \}\par ??        \par ??\cf1         #region\cf0  IMyService Members\par ??        \cf1 public\cf0  \cf1 string\cf0  MyOperation1(\cf1 string\cf0  myValue)\par ??        \{\par ??            \cf1 return\cf0  \cf4 String\cf0 .Format(\cf5 "\{0\} \{1\}"\cf0 ,Prefix, myValue);\par ??        \}\par ??\cf1         #endregion\par ??\cf0     \}\par ??\}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">namespace</span> MyService.Core</p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">TheService</span> : <span style="color:#2b91af;">IMyService</span></p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">string</span> Prefix { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">public</span> TheService(<span style="color:blue;">string</span> prefix)</p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;">Prefix = prefix;</p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:60px;margin:0;"> </p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;"> #region</span> IMyService Members</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">string</span> MyOperation1(<span style="color:blue;">string</span> myValue)</p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;"><span style="color:blue;">return</span> <span style="color:#2b91af;">String</span>.Format(<span style="color:#a31515;">"{0} {1}"</span>,Prefix, myValue);</p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;"> #endregion</span></p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+<h3 class="zemanta-pixie" style="margin-top:10px;height:15px;">Create your SVC file</h3>
+Presuming you have a web application to host your service, all raring to go, we need to tell the framework how to creaate your service.  That's what the .svc file does:
+<pre style="border:thin solid black;overflow:auto;">&lt;%@ ServiceHost Service="my service"
+Factory="Castle.Facilities.WcfIntegration.DefaultServiceHostFactory, Castle.Facilities.WcfIntegration" %&gt;</pre>
+As with the previous version of the facility, you have to use a custom ServiceHostFactory, which has changed to Castle.Facilities.WcfIntegration.DefaultServiceHostFactory.  Also, the Service attribute in the .svc file needs to point to the component name in your Windsor configuration, which brings us to...
+<h3>Configure Windsor</h3>
+In my last post, I used Boo to configure the container.  This time around, I am going to use the fluent API that Craig has created because it is kick ass.  The container needs to be configured on application start, so we put the following in the Global.asax file:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 #region\cf0  IContainerAccessor Members\par ??        \cf1 public\cf0  \cf4 IWindsorContainer\cf0  Container \{ \cf1 get\cf0 ; \cf1 private\cf0  \cf1 set\cf0 ; \}\par ??\cf1         #endregion\par ??\par ??\cf0         \cf1 protected\cf0  \cf1 void\cf0  Application_Start(\cf1 object\cf0  sender, \cf4 EventArgs\cf0  e)\par ??        \{\par ??            \cf4 ServiceMetadataBehavior\cf0  metadata = \cf1 new\cf0  \cf4 ServiceMetadataBehavior\cf0 ();\par ??            metadata.HttpGetEnabled = \cf1 true\cf0 ;\par ??\par ??            Container = \cf1 new\cf0  \cf4 WindsorContainer\cf0 ()\par ??                .AddFacility&lt;\cf4 WcfFacility\cf0 &gt;()\par ??                .Register(\par ??                \cf4 Component\cf0 .For&lt;\cf4 IServiceBehavior\cf0 &gt;().Instance(metadata),\par ??                \cf4 Component\cf0 .For&lt;\cf4 IMyService\cf0 &gt;()\par ??                    .Named(\cf5 "my service"\cf0 )\par ??                    .ImplementedBy&lt;\cf4 TheService\cf0 &gt;()\par ??                    .DependsOn(\cf1 new\cf0  \{prefix = \cf5 "A WCF Facility Service says"\cf0 \})\par ??                );\par ??        \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">#region</span> IContainerAccessor Members</p>
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:#2b91af;">IWindsorContainer</span> Container { <span style="color:blue;">get</span>; <span style="color:blue;">private</span> <span style="color:blue;">set</span>; }</p>
+<p style="margin:0;"><span style="color:blue;"> #endregion</span></p>
+<p style="margin:0;"> </p>
+<p style="margin:0;"><span style="color:blue;">protected</span> <span style="color:blue;">void</span> Application_Start(<span style="color:blue;">object</span> sender, <span style="color:#2b91af;">EventArgs</span> e)</p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;">ServiceMetadataBehavior</span> metadata = <span style="color:blue;">new</span> <span style="color:#2b91af;">ServiceMetadataBehavior</span>();</p>
+<p style="padding-left:30px;margin:0;">metadata.HttpGetEnabled = <span style="color:blue;">true</span>;</p>
+<p style="padding-left:30px;margin:0;"> </p>
+<p style="padding-left:30px;margin:0;">Container = <span style="color:blue;">new</span> <span style="color:#2b91af;">WindsorContainer</span>()</p>
+<p style="padding-left:60px;margin:0;">.AddFacility&lt;<span style="color:#2b91af;">WcfFacility</span>&gt;()</p>
+<p style="padding-left:60px;margin:0;">.Register(</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#2b91af;">Component</span>.For&lt;<span style="color:#2b91af;">IServiceBehavior</span>&gt;().Instance(metadata),</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#2b91af;">Component</span>.For&lt;<span style="color:#2b91af;">IMyService</span>&gt;()</p>
+<p style="padding-left:120px;margin:0;">.Named(<span style="color:#a31515;">"my service"</span>)</p>
+<p style="padding-left:120px;margin:0;">.ImplementedBy&lt;<span style="color:#2b91af;">TheService</span>&gt;()</p>
+<p style="padding-left:120px;margin:0;">.DependsOn(<span style="color:blue;">new</span> {prefix = <span style="color:#a31515;">"A WCF Facility Service says"</span>})</p>
+<p style="padding-left:30px;margin:0;">);</p>
+<p style="margin:0;">}</p>
+
+</div>
+Here, lemme 'splain.  As with any web application that uses Windsor, the container lives on the Global Application object.   Here, I first add the WcfFacility followed by adding a service behavior (ServiceMetadataBehavior).  This behavior will be added to all services registered with the container, however, new to the facility is the ability to explicitly scope a behavior.  You can scope a behavior to:  all services, all clients, or to explicit clients/services.  I know that feature was oft-requested by the community and Craig is the man for getting it done.  Back to our example, the service is registered is a IMyService named "my service" (remember our .svc file) and implemented by the TheService type.  Finally, I pass in my constructor argument, which is a string.  Oh, and in order to use the facility, you'll need a reference to the following assemblies:
+<ul>
+	<li>Castle.Core</li>
+	<li>Castle.Windsor</li>
+	<li>Castle.MicroKernel</li>
+	<li>Castle.Facilities.WcfIntegration</li>
+	<li>Castle.DynamicProxy2</li>
+</ul>
+That's it!   The service is ready to run.  You'll notice (or maybe you didn't), that I did not even open the web.config.  You can use the web.config if you like, but I didn't here because I am lazy.  You also may have noticed that I did not specify an endpoint or binding, so the facility created a default endpoint with BasicHttpBinding.  Again, I am lazy, but that is cool.
+<h3>Show Me the Service</h3>
+The image here shows what the service looks like in the WCFTestClient.exe application.
+
+[caption id="attachment_148" align="alignleft" width="150" caption="Easy peasy"]<a href="http://ruprict.files.wordpress.com/2009/05/wcftestclient.png"><img class="size-thumbnail wp-image-148" title="WCF Service in WCFTestClient" src="http://ruprict.files.wordpress.com/2009/05/wcftestclient.png?w=150" alt="Easy peasy" width="150" height="89" /></a>[/caption]
+
+The default protocol is SOAP (does anyone use SOAP anymore?) but you could easily create a REST endpoint.  Maybe I'll show that in my next post about this stuff.   This post only covers the very basics, so if you have more complicated stuff, I can take a stab at it or maybe ask Craig.
+
+Just to be complete, here are most of the  big time new features:
+<ul>
+	<li>Scoped Behaviors</li>
+	<li>The ability to create service hosts and control the host life cycle (see IServiceHostAware)</li>
+	<li>Fluent API</li>
+</ul>
+Speaking of which, lemme know if there is anything specific you want to see concerning the WCF Facility.  As I mentioned, the unit tests in the castle trunk are pretty comprehensive and the forthcoming documentation will have tons of configuration examples.  Try it out, it makes managing dependencies with WCF a breeze.

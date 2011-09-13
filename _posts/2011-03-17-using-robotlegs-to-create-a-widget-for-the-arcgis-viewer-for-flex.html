@@ -1,0 +1,269 @@
+--- 
+layout: post
+title: Using RobotLegs to Create a Widget for the ArcGIS Viewer for Flex
+tags: 
+- ArcDeveloper
+- Flex
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: 1300316029:3307217
+  _edit_last: "3307217"
+  email_notification: "1300302985"
+  jabber_published: "1300302983"
+---
+I submitted two talks to last week's ESRI Developers Summit, one of which was not selected.  This made me indignant enough to write a blog post explaining the shunned presentation, in the hopes that all the people that did not vote for it will slap their foreheads and pray for the invention of time travel.  Or, maybe I just want to dialog on using Robotlegs with the Flex Viewer.
+
+In the Advanced Flex presentation that Bjorn and <a title="Mansour's Blog" href="http://thunderheadxpler.blogspot.com/" target="_blank">Mansour </a>gave at DevSummit, he extolled the use of frameworks.  Paraphrasing, he said "Find a framework and stick with it"  By "framework", he meant something like PureMVC, Cairngorm (3, mind you, not 2), or Robotlegs.  I agree with the sentiment, wholly, although I am also a bit baffled at why the Flex Viewer didn't use one.  My guess is that they will claim they have their own framework, which is certainly true, but it flies in the face of what Mansour spoke of in his presentation.  I raised my hand to ask this question, but (thankfully) time ran out on the questions and I was not selected.  It is probably just as well, as I don't want to get on Mansour's or Bjorn's bad side.  They've both been very helpful to me in the past and I doubt I am even close to beyond needing more of their knowledge.
+
+So, in this blog post, I am going to create a Flex Viewer Widget with Robotlegs.  First, though, I'll explain a couple of things.  The reason I like using Robotlegs (or any well-supported framework) is myriad. It makes my widget much more testable, meaning, I can more easily write unit tests to exercise the widget.  This allows me to design the widget in a test-driven fashion, which is a good thing.  I wonder why the Flex Viewer source doesn't include any unit tests.  Again, it's not like ESRI is promoting bad habits, but they aren't promoting good ones either.  Also, Robotlegs is known outside the ArcGIS world, so future Flex developers on my project that know Robotlegs will be able to get productive more quickly.  Granted, they'll still have to learn about the ArcGIS API for Flex as well as the widget-based approach taken by the Flex Viewer, but the patterns Robotlegs uses brings context to this learning.  That's my story, and I am sticking to it.
+
+So, why Robotlegs?  Because I like it.  It's got a great community and it makes a ton of sense.  Read on to see what I mean.
+
+OK, let's get to the code.
+<h2>The Scenario</h2>
+The widget we are building today is a Geolocation Widget.  (final product <a title="The Widget" href="http://www.goodrichs.net/flexgeo/" target="_blank">here</a>) It's function is to figure out where the user is and store that location in application, allowing the user to zoom to their location.  It will rely on javascript to do the IP Location search (which we won't get into too much.  Suffice it to say that we're using the HTML 5 Geolocation API for this with a fallback)
+
+Now, I don't really want this post to be an intro to Robotlegs.  There are plenty of those, including a <a href="http://joelhooks.com/2011/03/12/an-introduction-to-robotlegs-as3-part-1-context-and-mediators/" target="_blank">very recent one by Joel Hooks </a>(an RL founding member and crazy-smart guy) Read through those posts (as of this post, there are 3, with more on the way)  It should get you enough background to understand what is going on here.  Go ahead, I'll wait.
+
+Back? Confused? Robotlegs takes a bit to comprehend (not even sure if I totally get it, ahem) So, here are the things you'll need to go through this in your own Flex development environment:
+<ul>
+	<li>The ArcGIS API for Flex (I am using 2.2)</li>
+	<li>Robotlegs (using 1.4 here)</li>
+	<li>FlexUnit (4.0.0.2) and related swcs</li>
+	<li>AsMock (1.0) with the FlexUnit integration swc</li>
+        <li>Robotlegs Modular Utilities (<a href="https://github.com/joelhooks/robotlegs-utilities-Modular" target="_blank">github</a>) <a href="http://www.xxcoder.net/" target="_blank">Stray</a>  (who is brilliant) and Mr. Hooks have written a modular utility for RL, and since our Flex Viewer is modular, we are using it.</li>
+      </ul>
+      
+For simplicity, just grab the git repository <a title="Github repo" href="https://github.com/ruprict/GeolocationWidget" target="_blank">here</a>, which has all this stuff set up for you.  Don't get too hung up on the number of libraries and third party code.  This is how separation of concerns looks, leveraging the best library for a specific function.
+<h2>The 'Main' Context</h2>
+For those of you that did go read the Robotlegs introductory articles, you know that we have Contexts, Views, Mediators, Commands, and Services.  The context is the first thing we need to sort out, and there is a couple of caveats to our particular situation.  First, the Flex Viewer is not a RL application and, therefore, it does not have a context.  However, we need one, even using the Modular Utility.  In a nutshell, the Application Context is there as a parent context, and will supply the injector to the module contexts (unless you create one explicitly).  So, first thing to do is create the main context:
+
+[sourcecode language="actionscript3"]
+import com.esri.viewer.BaseWidget;
+import flash.display.DisplayObjectContainer;
+import flash.system.ApplicationDomain;
+import org.robotlegs.core.IInjector;
+import org.robotlegs.utilities.modular.mvcs.ModuleContext;
+public class ApplicationContext extends ModuleContext {
+	public override function startup():void {
+		viewMap.mapType(BaseWidget);
+	}
+}
+[/sourcecode]
+
+In the main application context, we register the BaseWidget class, which will allow Robotlegs to inject any widget going forward.  This makes using Robotlegs a bit more involved than just sticking with the "core" Flex Viewer widget approach, but it's a small price to pay, in my opinion.
+<h2>The View</h2>
+Since functionality drives the widget, next is the view.  In this scenario. we want the geolocation to be loaded when the widget is first opened.  Once it is found, the location should be displayed and the user can pan to that location as desired.  In my mind's eye, I see a couple of labels and a button.  Also, we have 3 states: <strong>Searching for location</strong>, <strong>location found</strong>, and <strong>location not found</strong>.  I see this:
+<img src="http://ruprict.files.wordpress.com/2011/03/glwidget1.png" title="Glenn's Awesome Widget UI" />
+We have a feedback area, the location is displayed, and the user can pan whenever they like with the "Go there!" button.  Not gonna win any awards, but it gets the job done.  From looking at our UI, there are a couple of takeaways:  First, the location is loaded automatically, which means it happens when the user opens the widget.  Second, we can start to think about our states and what is visible for each state.  Finally, something has to handle user pressing that button.  In RL, it's the job of the Mediator to handle view events, so this is what ours looks like:
+
+[sourcecode language="actionscript3"]
+public class GeolocationWidgetMediator extends ModuleMediator
+{
+  [Inject]
+  public var location:IGeolocation;
+	
+  [Inject]
+  public var widget:GeolocationWidget;
+	
+  override public function onRegister():void{
+    eventMap.mapListener(widget.btnGoThere, MouseEvent.CLICK, handleGoThere);
+    //Could also use this, but then you have to figure out the target.
+    //this.addViewListener(MouseEvent.CLICK, handleGoThere);
+    this.addContextListener(GeolocationEvent.LOCATION_FOUND, handleLocationFound);
+    widget.currentState = GeolocationWidget.STATE_SEARCHING_FOR_LOCATION;
+    getLocation();
+  }
+  private function handleGoThere(event:MouseEvent):void{ 
+    var point:MapPoint = com.esri.ags.utils.WebMercatorUtil.geographicToWebMercator(new MapPoint(location.x,location.y)) as MapPoint;
+    widget.map.centerAt(point);
+    addGraphic(point);
+  }
+  private function getLocation():void{
+    //Find yourself
+    dispatch(new GeolocationEvent(GeolocationEvent.GET_LOCATION));
+  }
+}	
+[/sourcecode]
+<p>When the Mediator is registered, we map the button click event to handleGoThere(), which simply zooms to our location.  But wait, where did that location come from?  
+  <h2>The Model</h2>
+  The location object is our Model and is of type IGeolocation (I used an interface for the model here, and now I kinda wish I hadn't...oh well)  We know it needs x/y coordinates, so we'll make a model object that fulfills our requirement:</p>
+[sourcecode language="actionscript3"]
+public class Geolocation implements IGeolocation
+{
+  private var _x:Number;
+  private var _y:Number;
+                  
+  public function get x():Number{
+    return _x;
+  }
+  public function get y():Number{
+    return _y;
+  }
+  public function Geolocation(x:Number=0.00,y:Number=0.00)
+  {
+    _x = x;
+    _y = y;
+  }
+}
+[/sourcecode]
+<p>
+  There, now we have a model that is injected into our mediator.  The model is a singleton (not a Singleton, it's managed by RL) so that anything that cares about changes to the model can just have it injected and they're always up to date.  MMMM....that feels good.  When we look at our module context, you'll see how to make the model a singleton (we do it with services too!)  For now, we're still talking about the mediator.  The getLocation() method fires off a GeolocationEvent, which we need to 'splain.
+</p>
+<h2>Events</h2>
+<p>
+  The Mediator takes view/framework events and translates them into Business Events.  In this case, the loading of the widget is translated into a go-get-our-geolocation event, which we call GeolocationEvent.GET_LOCATION. 
+</p>
+[sourcecode language="actionscript3"]
+public class GeolocationEvent extends Event
+{
+  public static const LOCATION_FOUND:String = &quot;locationFound&quot;;
+  public static const LOCATION_NOT_FOUND:String = &quot;locationNotFound&quot;;
+  public static const GET_LOCATION:String = &quot;getGeolocation&quot;;
+  public var location:IGeolocation;
+                  
+  public function GeolocationEvent(type:String)
+  {
+    super(type);
+  }
+  override public function clone():Event{
+    return new GeolocationEvent(type);
+  }
+}
+
+[/sourcecode]
+<p>
+  Nothing special about events in RL, which is GOOD.  Our GeolocationEvent has a payload of our location model, and it handles a few event types.  We know when getGeolocation happens, the other two events are in response to finding out geolocation.  We'll talk a bit about those when we get to the service.  For now, something has to respond to our GeolocationEvent.GET_LOCATION
+</p>
+<h2>Commands</h2>
+<p>
+  In RL, you handle business events with Commands.  Commands are responsible for answering the question raised by the event, either by going outside the application (when they talk to services) or by some other means.  In our case, we'll make a GeolocationCommand that calls some service to get our geolocation.
+</p>
+[sourcecode language="actionscript3"]
+public class GetGeolocationCommand extends Command
+{
+  [Inject]
+  public var service:IGeolocationService;
+
+  [Inject]
+  public var event:GeolocationEvent;
+                  
+  override public function execute():void{
+    service.getGeolocation();
+  }
+}
+
+[/sourcecode]
+<p>
+  About the simplest command you can possibly have.  Also, note how RL is helping us flush out our needs while guiding us in using best practices.  What have you done for RL lately?  Yet it still guides you on the path of rightgeousness.  Let's discuss that IGeolocationService.
+</p>
+<h2>Services</h2>
+<p>
+  The 'S' in MVCS.  Services are our gateway to what lies beyond.  When we need to go outside the app for data, we ask a service to do that.  In this case, our service is going to ask the HTML5 Geolocation API for our current location.  This means, basically, that we call out using ExternalInterface and define a couple of callbacks so we can handle whatever the service returns.
+</p>
+[sourcecode language="actionscript3"]
+public class GeolocationService extends Actor implements IGeolocationService
+{
+  public function GeolocationService()
+  {
+    ExternalInterface.addCallback(&quot;handleLocationFound&quot;,handleLocationFound);
+    ExternalInterface.addCallback(&quot;handleLocationNotFound&quot;,handleLocationNotFound);
+  } 
+  public function getGeolocation():void
+  {
+    ExternalInterface.call(&quot;esiGeo.getGeolocation&quot;);
+  }
+  public function handleLocationFound(x:Number, y:Number):void{
+    var location:Geolocation = new Geolocation(x,y);
+    var event:GeolocationEvent = new GeolocationEvent(GeolocationEvent.LOCATION_FOUND);
+    event.location = location;
+    dispatch(event);
+  }
+                  
+  public function handleLocationNotFound():void{
+    var event:GeolocationEvent = new GeolocationEvent(GeolocationEvent.LOCATION_NOT_FOUND);
+    dispatch(event);
+  }
+}
+
+[/sourcecode]
+<p>
+  Notice that our service extends the Actor class, which is an RL class that (basically) gives us access to EventDispatcher.  The service will fire events (as you see above) when it gets back results from the beyond.
+</p>
+<p>
+  Something has to handle the events thrown by the service.  We want these results to show up in our view, which means, we want these results to change our model.  Back to the Mediator.
+</p>
+<h2>The Circle of RL</h2>
+<p>
+  Back in the GelocationWidgetMediator, we can subscribe to the events raised by the service.  As a side note, you really have a couple of options here.  If your data is more complex than an x/y pair, you'll likely want to parse it before it gets to the mediator.  At this point, I would recommend you look at Joel's posts and, for something super cool and useful, the <a href="https://github.com/darscan/robotlegs-extensions-Oil" target="_blank">Robotlegs Oil extensions.</a>  I will likely blog about Oil in the future.  You could also create a presentaion model, inject it into the view and data bind to the model objects on the PM.  I am doing it the simplest way because my scenario is simple.  Anyway, back to the mediator and handling the events raised by the service.  You subscribe to context events in the same onRegister() function that you subscribe to view events.
+</p>
+[sourcecode language="actionscript3"]
+override public function onRegister():void{
+  eventMap.mapListener(widget.btnGoThere, MouseEvent.CLICK, handleGoThere);
+  //Could also use this, but then you have to figure out the target.
+  //this.addViewListener(MouseEvent.CLICK, handleGoThere);
+  this.addContextListener(GeolocationEvent.LOCATION_FOUND, handleLocationFound);
+  this.addContextListener(GeolocationEvent.LOCATION_NOT_FOUND, handleLocationNotFound);
+
+  widget.currentState = GeolocationWidget.STATE_SEARCHING_FOR_LOCATION;
+  getLocation();
+}
+
+public function handleLocationNotFound(event:GeolocationEvent):void{
+  widget.currentState = GeolocationWidget.STATE_LOCATION_NOT_FOUND;
+}
+
+[/sourcecode]
+<p>
+We saw handleLocationFound() above, here I added the handling of the not found scenario.  All it does is set the state to the "not found" state, which hides buttons/labels/whatever.    
+</p>
+<h2>The Context</h2>
+<p>
+  As I mentioned earlier, the module needs its own module context.  The context's job is to wire everyting up.  Our mediator is mapped to its view, events to commands, and the services our registered.  Also, the items that will be injected to the various players (like the model and the service) are specified.  
+</p>
+[sourcecode language="actionscript3"]
+public class GeolocationWidgetContext extends ModuleContext
+{
+  public function GeolocationWidgetContext(contextView:DisplayObjectContainer, injector:IInjector){
+    super(contextView, true, injector, ApplicationDomain.currentDomain);
+  }
+
+  override public function startup():void{
+    //Singletons
+    injector.mapSingletonOf(IGeolocationService, GeolocationService);
+    injector.mapSingletonOf(IGeolocation,Geolocation);
+                            
+    //Mediators
+    mediatorMap.mapView(GeolocationWidget, GeolocationWidgetMediator);
+
+    //Commands
+    commandMap.mapEvent(GeolocationEvent.GET_LOCATION, GetGeolocationCommand,GeolocationEvent);
+    commandMap.mapEvent(GeolocationEvent.LOCATION_FOUND, FindPolygonCommand, GeolocationEvent);
+  }
+}
+
+[/sourcecode]
+<p>
+  Our context extends ModuleContext, which is supplied by the Robotlegs Modular Utilities.  The ModuleContext creates a ModuleEventDispathcher and ModuleCommandMap, and is basically (as Joel states <a href="http://joelhooks.com/2010/05/02/modular-robotlegs/" target="_blank">here</a>) just a convenience mechanism.  Since we are in a module, there is one last little item we have to do to make this all come together.  Our module should (read: needs to) implement the org.robotlegs.utilities.modular.core.IModule interface.  This defines two functions (a setter for parentInjector and a dispose() method) that ensures the API to initialize the module and RL is in place.  So, in the script of the MXML, you have:
+</p>
+[sourcecode language="actionscript3"]
+[Inject]
+public function set parentInjector(value:IInjector):void{
+  context = new GeolocationWidgetContext(this,value);
+}
+//Cleanup the context
+public function	dispose():void{
+  context.dispose();
+  context=null;
+}
+[/sourcecode]
+<p>
+  The set parentInjector allows us to create a child injector as well as use mappings from the main context. Read Joel's post on Modular stuff for more detail.  The dispose() function is just good practice, allowing you to free up anything you need to free up.  The <em>mapSingletonOf</em> calls are how you tell RL to just make one of these things.  Above the Geolocation model object is made a singleton, so the mediator and the command get the same copy.  In a more complex widget, you could data bind to that bad boy and anything that changes it shows up in the view without any code.  That...howyousay?...rocks!
+</p>
+<p>
+  That really covers the meat of creating a Flex Widget for the ArcGIS Viewer for Flex using Robotlegs.  As I mentioned, this was submitted to the Flex-a-Widget challenge at the Developers Summit and did not place.  The winners (which, to be honest, I voted for) did things display Street View and Bing 3D and windows into your friggin' soul in the Flex Viewer, so you can see why this simple-to-the-point-of-being-useless widget did not place.  Still the guts of this widget are pretty sexy, and now  hopefully you can build your own soul-displaying widgets using Robotlegs.
+</p>
+<p>The code on github has a few items that I didn't think pertinent to this blog, like unit tests (which are VERY important and a BIG reason why using something like RL is crucial)  Also, the source has another sequence of taking the point and finding the county where the user is currently, just for fun.  I hope you found this useful.  If I messed anything up or got something wrong, please let me know in the comments.  Much of the reason I do blog posts like this one is to confirm that things are what I think the are.  I have (frequently) been wrong before, so correct me if you see an error.
+</p>

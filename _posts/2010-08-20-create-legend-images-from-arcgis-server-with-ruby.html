@@ -1,0 +1,64 @@
+--- 
+layout: post
+title: Create Legend Images from ArcGIS Server with Ruby
+tags: 
+- ArcDeveloper
+- ArcGIS Server
+- Ruby
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1282266585"
+  jabber_published: "1282266579"
+  _wp_old_slug: ""
+---
+Recently, I needed to create a legend for an ArcGIS Server map service, and was amazed that it was still a non-trivial activity.  Googling it, I saw a few posts with (what I considered to be) WAY too complicated C# code for such a simple task. Also, there is no great way to get a legend out of ArcMap (for gawd's sake) which left me thinking "Surely, there is an easy way to do this." (expletives removed)
+
+I have been mucking about (again) with ruby and Rails, which is great and depressing all at the same time.  I don't use much ruby in my 9-to-5, as it's neck-deep in Microsoft, so I try to shoehorn ruby into my work however I can.  In this case, I remembered the venerable <a href="http://blog.davebouwman.com/" target="_blank">Dave Bouwman's</a> <a href="http://www.slideshare.net/dbouwman/using-arcgis-server-with-ruby-on-rails?from=ss_embed" target="_blank">Ruby-Fu presentatio</a>n at DevSummit (That guy is always doing the stuff I want to be doing.  I don't like him.) and that he had found a ruby library that spoke both REST and SOAP to ArcGIS Server.  Being an experienced AGS dev-monkey, I also know that you can get legend and symbology information from the SOAP API.  Thusly, a not-terribly-original-or-visionary idea was born:  Use ruby to create a legend.
+
+My main requirement is that it easy, something on the order of:
+<ol>
+	<li>Tell the thing the URL of my map service.</li>
+	<li>Tell the thing I want a legend for the map service.</li>
+	<li>Save the legend given to me by the thing to a file.</li>
+</ol>
+So, I got my shoehorn out and when in search of ArcGIS-flavored ruby bits.
+<h2>arcserver.rb</h2>
+I hunted down the slides for Dave's preso to find the name of the ruby library he mentioned.  It is arcserver.rb (<a href="http://github.com/colincasey/arcserver.rb" target="_blank">github</a>) written by Colin Casey, an extremely patient and approachable developer.  I sent him a message with my Grand Legend Plan, and he say "Do it, man."  arcserver.rb already did #1 and #2 from my list above.  All I had to do was #3.  Once you've installed the arcserver.rb gem (so, type 'gem install arcserver.rb' at your command prompt and watch it install all kinds of stuff....WEEE!)  (run this in irb):
+
+[sourcecode language="ruby"]
+require 'rubygems'
+require 'arcserver'
+server = ArcServer::MapServer.new(&quot;http://server.arcgisonline.com/ArcGIS/services/Demographics/ESRI_Diversity_US_2D/MapServer&quot;)
+server.get_legend_info
+[/sourcecode]
+
+That gives you a text representation of all the legend information for the service.  So, all I had to do was loop through all the symbology and write out the symbols.  Easy, right?  Well, in ruby evertyhing is easy (no fanboy bias there at all).  I needed an image processor, and the Old Man of Ruby Image Processors is <a href="http://rmagick.rubyforge.org/" target="_blank">RMagick</a>.  Now, bear in mind that I did all of this on a Windows box, but I used Cygwin.  You can install RMagick 2 on Windows natively, so I hear/read, but I didn't do it that way.  However you do it, you're gonna need RMagick, and therefore, ImageMagick.  (um, everything in ruby is easy *cough*)
+
+Got RMagick installed?? Awesome! Wasn't that easy?  Are you giving me the finger?  Let's continue.  One of my goals in contributing to Colin's project was to not pollute it too much.  Being pretty much a ruby novice, I figured the best thing to do was to keep as much of my code in its own class/file, so Colin could easily remove/rewrite/laugh-and-point-at it how he saw fit.  The final (cleaned and reorganized by Colin) version consists of a LegendImage class that you can see <a href="http://github.com/colincasey/arcserver.rb/blob/master/lib/arcserver/util/legend_image.rb" target="_blank">here on Github</a> (I don't want to post a ton of code here, it's just unwieldy)  I am not going to walk through the code, but I'd like to point out that it's &lt;70 lines and very readable.  For a first run, I was very happy.  If people use it or I find the need, the next step would be to handle options (dpi, width, height, layers to exclude, etc.) but, for now, this works.  Also, I've heard that 10.1 is going to fix this legend issue and make it easy to create them, so putting a ton of work into this prove to be fruitless.
+
+Now, to create a legend image, do the same thing we did above, but add (if you've installed RMagick since you started irb, you need to restart it):
+
+[sourcecode language="ruby"]
+require 'RMagick'
+server.get_legend_image.write(&quot;legend.png&quot;)
+[/sourcecode]
+
+which will write a PNG file called "legend.png" in the from which directory you fired up 'irb'.  Kick ass.  Three lines of code (less if you chain) to get a (very basic, but usable) legend from ArcGIS Server.  Here is the legend it creates using the Diversity service from ArcGISOnline.
+
+<a href="http://ruprict.files.wordpress.com/2010/08/legend.png"><img class="size-full wp-image-294 alignnone" title="legend" src="http://ruprict.files.wordpress.com/2010/08/legend.png" alt="Legend for Diversity Map Service" width="250" height="290" /></a>
+
+I thought that was pretty cool and useful.  There may be other, more elegant ways out there to get a legend from an ArcGIS Server map service, and I am sure someone will mention them in the comments.  Even so, I enjoyed doing this little exercise and I appreciate Colin letting me contribute to his project.  Here are all the irb commands needed once you have the prerequisites and the gem installed:
+
+[sourcecode language="ruby"]
+require 'rubygems'
+require 'RMagick'
+require 'arcserver'
+server = ArcServer::MapServer.new(&quot;http://server.arcgisonline.com/ArcGIS/services/Demographics/ESRI_Diversity_US_2D/MapServer&quot;)
+server.get_legend_image.write(&quot;legend.png&quot;)
+[/sourcecode]
+
+My next task is to use this library in a Rails-based web mapping application.  Hopefully, I'll get to that in the next week or so.
+<div class="zemanta-pixie" style="margin-top:10px;height:15px;"><a class="zemanta-pixie-a" title="Enhanced by Zemanta" href="http://www.zemanta.com/"><img class="zemanta-pixie-img" style="border:none;float:right;" src="http://img.zemanta.com/zemified_e.png?x-id=cbacd1fa-e1b3-4bf7-96f9-f1a1e8cd5851" alt="Enhanced by Zemanta" /></a></div>

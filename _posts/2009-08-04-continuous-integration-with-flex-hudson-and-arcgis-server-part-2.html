@@ -1,0 +1,228 @@
+--- 
+layout: post
+title: Continuous Integration with Flex, Hudson, and ArcGIS Server, Part 2
+tags: 
+- Agile
+- Continuous Integration
+- Flex
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1254341493"
+  _edit_last: "3307217"
+---
+(<a href="http://ruprict.wordpress.com/2009/07/31/continuous-integration-with-flex-hudson-and-arcgis-server-part-1/">Part 1</a>, <a href="http://ruprict.wordpress.com/2009/08/24/continuous-integration-with-flex-hudson-and-arcgis-server-part-3/">Part 3</a>, <a href="http://ruprict.wordpress.com/2009/09/30/continuous-integration-with-flex-hudson-and-arcgis-server-part-iv/">Part 4</a>)
+
+In the <a href="http://ruprict.wordpress.com/2009/07/31/continuous-integration-with-flex-hudson-and-arcgis-server-part-1/trackback/">last</a> post, I talked about the very basics of getting a Flex project going with Flex Builder and ant.  The current ant script we have just builds the SWF file, which leaves out a bunch of files that Flex Builder uses, and that is bad as defined by what I am trying to blog about here.  So, let’s get going on pulling over the rest of the files.  Well, at least, the important ones.  The most important one is likely the HTML file that wraps our SWF.  If we are going to deploy this SWF in any meaningful (read: web) manner, we need that HTML file.  Actually, we need one that we make ourselves and pull into our build process, but that will left as an assignment for the reader.  For the sake of this series, we’ll just reuse the HTML file that Flex Builder was kind enough to generate.
+
+In the default Flex Builder project, one of the folders is <strong>html-template, </strong>that looks like:
+
+<a href="http://ruprict.files.wordpress.com/2009/08/image.png"><img style="display:inline;border-width:0;" title="image" src="http://ruprict.files.wordpress.com/2009/08/image_thumb.png" border="0" alt="image" width="228" height="103" /></a>
+
+Not much to it, really.  I am not gonna go into the meat of what the files are, if you want that go <a href="http://livedocs.adobe.com/flex/2/docs/wwhelp/wwhimpl/common/html/wwhelp.htm?context=LiveDocs_Parts&amp;file=00001580.html">here</a>.  In a nutshell, what we need to do here is copy this whole directory to our output folder (our ${deploy.dir} for you sharp ones following along).  There is a slight caveat here, tho, and that’s the contents of the index.template.html.  If you open that file in a text editor, you’ll see snippets like:
+<pre class="csharpcode" style="overflow:auto;">AC_FL_RunContent(
+        <span class="str">"src"</span>, <span class="str">"playerProductInstall"</span>,
+        <span class="str">"FlashVars"</span>, <span class="str">"MMredirectURL="</span>+MMredirectURL+<span class="str">'&amp;MMplayerType='</span>+MMPlayerType+<span class="str">'&amp;MMdoctitle='</span>+MMdoctitle+<span class="str">""</span>,
+        <span class="str">"width"</span>, <span class="str">"${width}"</span>,
+        <span class="str">"height"</span>, <span class="str">"${height}"</span>,
+        <span class="str">"align"</span>, <span class="str">"middle"</span>,
+        <span class="str">"id"</span>, <span class="str">"${application}"</span>,
+        <span class="str">"quality"</span>, <span class="str">"high"</span>,
+        <span class="str">"bgcolor"</span>, <span class="str">"${bgcolor}"</span>,
+        <span class="str">"name"</span>, <span class="str">"${application}"</span>,
+        <span class="str">"allowScriptAccess"</span>,<span class="str">"sameDomain"</span>,
+        <span class="str">"type"</span>, <span class="str">"application/x-shockwave-flash"</span>,
+        <span class="str">"pluginspage"</span>, <span class="str">"http://www.adobe.com/go/getflashplayer"</span>
+    );</pre>
+where you may notice the now familiar ${} variables.  So, now our simple copy has turned into a copy and replace all the ${} tokens with their appropriate values.  Nothing is ever as simple as it should be.
+
+The good news is that it’s not so hard either.  Breaking down what we need to do, I think it looks something like this:
+<ol>
+	<li>Copy the html-template contents.</li>
+	<li>Parse the index.template.html and replace the tokens.</li>
+</ol>
+Let’s create our ant task to get this done.  I’ll it <strong>create-html-wrapper</strong>, and it looks like this:
+<pre class="csharpcode" style="overflow:auto;"><span class="kwrd">&lt;</span><span class="html">target</span> <span class="attr">name</span><span class="kwrd">='create-html-wrapper'</span><span class="kwrd">&gt;</span>
+    <span class="kwrd">&lt;</span><span class="html">copy</span> <span class="attr">todir</span><span class="kwrd">='${deploypath.dir}'</span> <span class="attr">overwrite</span><span class="kwrd">="true"</span><span class="kwrd">&gt;</span>
+      <span class="kwrd">&lt;</span><span class="html">fileset</span> <span class="attr">dir</span><span class="kwrd">='${wrapper.dir}'</span><span class="kwrd">&gt;</span>
+<span class="kwrd">         &lt;exclude name='**/index.template.html' /&gt;</span>
+     <span class="kwrd">&lt;</span><span class="html">exclude</span> <span class="attr">name</span><span class="kwrd">='**/index.template.html.svntmp'</span> <span class="kwrd">/&gt;</span>
+         <span class="kwrd">&lt;</span><span class="html">exclude</span> <span class="attr">name</span><span class="kwrd">='.svn'</span> <span class="kwrd">/&gt;</span>
+      <span class="kwrd">&lt;/</span><span class="html">fileset</span><span class="kwrd">&gt;</span>
+<span class="kwrd">&lt;/</span><span class="html">copy</span><span class="kwrd">&gt;</span></pre>
+The <strong>copy</strong> ant task is a standard task from the ant library.  We are excluding some items here:  we don’t want any source control artifacts to end up in the deploy directory.  I am using subversion here, so I explicitly exclude those.  The one that may look odd is the exclusion of index.template.html.  The reason that file is excluded is because we want to rename it.  I don’t want my HTML file to be named index.template.html, do you?
+
+(NOTE:  The Flex ant tasks include an html-wrapper task, but I found it lacking for reasons that now escape me.  I think the parsing of the HTML files was either not there or crappy.  Either way, I dumped it for some very valid reason, I am sure.)
+
+For the index.template.html, we can use another cool ant ask that uses regular expressions to replace content within a file.  The name of that task is <strong>replaceregexp</strong>, and it’s dead sexy.  Here is the copy command, and it’s a bit of a doozy.  I am not gonna go through each token, as that would be REALLY boring (not super exciting like the rest of this post)
+<pre class="csharpcode" style="overflow:auto;">
+<div id="_mcePaste" style="position:absolute;left:-10000px;top:900px;width:1px;height:1px;">&lt;!-- Copy and rename the index.template.html --&gt;</div>
+<div id="_mcePaste" style="position:absolute;left:-10000px;top:900px;width:1px;height:1px;"><span style="white-space:pre;"> </span> &lt;copy file='${wrapper.dir}/index.template.html'</div>
+<div id="_mcePaste" style="position:absolute;left:-10000px;top:900px;width:1px;height:1px;"><span style="white-space:pre;"> </span> tofile='${html.file}' /&gt;</div>
+&lt;!-- Copy and rename the index.template.html --&gt;
+	     &lt;copy file='${wrapper.dir}/index.template.html'
+		      tofile='${html.file}' /&gt;
+ <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+        <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+        <span class="attr">flags</span><span class="kwrd">='gs'</span>
+        <span class="attr">match</span><span class="kwrd">='\$\{width\}'</span>
+        <span class="attr">replace</span><span class="kwrd">='100%'</span><span class="kwrd">/&gt;</span>
+     <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+        <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+        <span class="attr">flags</span><span class="kwrd">='gs'</span>
+        <span class="attr">match</span><span class="kwrd">='\$\{height\}'</span>
+        <span class="attr">replace</span><span class="kwrd">='100%'</span><span class="kwrd">/&gt;</span>
+    <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+        <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+        <span class="attr">flags</span><span class="kwrd">='gs'</span>
+        <span class="attr">match</span><span class="kwrd">='\$\{title\}'</span>
+        <span class="attr">replace</span><span class="kwrd">='${APP_TITLE}'</span>
+        <span class="attr">encoding</span><span class="kwrd">='utf-8'</span><span class="kwrd">/&gt;</span>
+     <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+        <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+        <span class="attr">flags</span><span class="kwrd">='gs'</span>
+        <span class="attr">match</span><span class="kwrd">='\$\{version_major\}'</span>
+        <span class="attr">replace</span><span class="kwrd">='${version.major}'</span><span class="kwrd">/&gt;</span>
+    <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+        <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+        <span class="attr">flags</span><span class="kwrd">='gs'</span>
+        <span class="attr">match</span><span class="kwrd">='\$\{version_minor\}'</span>
+        <span class="attr">replace</span><span class="kwrd">='${version.minor}'</span><span class="kwrd">/&gt;</span>
+     <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+        <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+        <span class="attr">flags</span><span class="kwrd">='gs'</span>
+        <span class="attr">match</span><span class="kwrd">='\$\{version_revision\}'</span>
+        <span class="attr">replace</span><span class="kwrd">='${version.revision}'</span><span class="kwrd">/&gt;</span>
+    <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+        <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+        <span class="attr">flags</span><span class="kwrd">='gs'</span>
+        <span class="attr">match</span><span class="kwrd">='\$\{application\}'</span>
+        <span class="attr">replace</span><span class="kwrd">='${APP_TITLE}'</span><span class="kwrd">/&gt;</span>
+    <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+        <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+        <span class="attr">flags</span><span class="kwrd">='gs'</span>
+        <span class="attr">match</span><span class="kwrd">='\$\{bgcolor\}'</span>
+        <span class="attr">replace</span><span class="kwrd">='#FFFFFF'</span><span class="kwrd">/&gt;</span>
+    <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+        <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+        <span class="attr">flags</span><span class="kwrd">='gs'</span>
+        <span class="attr">match</span><span class="kwrd">='\$\{swf\}'</span>
+        <span class="attr">replace</span><span class="kwrd">='${application.name}'</span><span class="kwrd">/&gt;</span></pre>
+<pre class="csharpcode">(BTW, the replaceregexp stuff I blatantly stole from <a href="http://java-aap.blogspot.com/2007/06/how-to-build-ant-scripts-for-flex.html">here</a>, which is a GREAT post on using ant with Flex.  Also goes to show you that I am a couple of years behind the cool kids.)</pre>
+Finally, let’s take another look at our build.properties file, which added quite a bit of properties for this task.
+<pre class="csharpcode" style="overflow:auto;">#Copy <span class="kwrd">this</span> file locally to build.properties and change below <span class="kwrd">for</span> your env
+
+# change <span class="kwrd">this</span> to your Flex SDK directory path
+FLEX_HOME=C:/Program Files (x86)/Adobe/Flex Builder 3/sdks/3.2.0
+
+# <span class="kwrd">this</span> points to your project<span class="str">'s src directory
+# {$basedir} is a default variable that can be used in any Antscript
+# and it points to the project'</span>s root folder [ flex_ant_pt1_Tasks ]
+# <span class="kwrd">in</span> <span class="kwrd">this</span> <span class="kwrd">case</span>
+srcpath.dir =${basedir}/src
+
+# points to the project's libs directory
+libs.dir =${basedir}/libs
+
+# <span class="kwrd">this</span> <span class="kwrd">is</span> the folder we want to publish the swf to
+deploypath.dir = ${basedir}/bin-debug
+
+wrapper.dir=${basedir}/html-template
+
+version.major =0
+version.minor=9
+version.revision = 0
+APP_TITLE = Flex Solution
+APP_WIDTH = 100%
+APP_HEIGHT =100%
+locale = en_US
+html.file=${deploypath.dir}/index.html
+application.name=FlexAGSCI</pre>
+We have some of our HTML tokens, like width and height, a new directory (wrapper.dir) and the name of our HTML file.  For the ant build, I rename it to index.html because I plan on using ant to actually deploy the application to a web server and I want a default document name to be used.
+
+So, next post will concentrate on adding a unit testing framework and getting ant to run our tests too.  I know the first couple of posts were mongo-basic, but I wanted to lay a bit of a foundation before getting into the cooler stuff.  We'll get there.  I am about to head off on a mini-vacation, so it might be a week or more before I get to it.  I hope you can manage until then….
+
+Oh, and here’s our build.xml, in full, just for fun:
+<pre class="csharpcode" style="overflow:auto;"><span class="kwrd">&lt;</span><span class="html">project</span> <span class="attr">name</span><span class="kwrd">='Flex Ant Tasks Build Script'</span> <span class="attr">default</span><span class="kwrd">='build-flex-project'</span><span class="kwrd">&gt;</span>
+    <span class="rem">&lt;!-- load properties file --&gt;</span>
+    <span class="kwrd">&lt;</span><span class="html">property</span> <span class="attr">file</span><span class="kwrd">='build.properties'</span><span class="kwrd">/&gt;</span>
+
+    <span class="rem">&lt;!-- points to are flexTasks.jar --&gt;</span>
+    <span class="kwrd">&lt;</span><span class="html">taskdef</span> <span class="attr">resource</span><span class="kwrd">='flexTasks.tasks'</span> <span class="kwrd">/&gt;</span>    
+
+    <span class="rem">&lt;!-- delete and redeploy --&gt;</span>
+    <span class="kwrd">&lt;</span><span class="html">target</span> <span class="attr">name</span><span class="kwrd">='init'</span><span class="kwrd">&gt;</span>
+        <span class="kwrd">&lt;</span><span class="html">delete</span> <span class="attr">includeemptydirs</span><span class="kwrd">='true'</span><span class="kwrd">&gt;</span>
+            <span class="kwrd">&lt;</span><span class="html">fileset</span> <span class="attr">dir</span><span class="kwrd">='bin-debug'</span> <span class="attr">includes</span><span class="kwrd">='**\*'</span> <span class="attr">excludes</span><span class="kwrd">='**\.svn'</span><span class="kwrd">/&gt;</span>
+        <span class="kwrd">&lt;/</span><span class="html">delete</span><span class="kwrd">&gt;</span>
+
+    <span class="kwrd">&lt;/</span><span class="html">target</span><span class="kwrd">&gt;</span>
+    <span class="kwrd">&lt;</span><span class="html">target</span> <span class="attr">name</span><span class="kwrd">='build-flex-project'</span> <span class="attr">depends</span><span class="kwrd">='init,create-html-wrapper'</span><span class="kwrd">&gt;</span>
+        <span class="kwrd">&lt;</span><span class="html">mxmlc</span> <span class="attr">file</span><span class="kwrd">='${srcpath.dir}/${application.name}.mxml'</span> <span class="attr">output</span><span class="kwrd">='${deploypath.dir}/${application.name}.swf'</span><span class="kwrd">&gt;</span>
+            <span class="kwrd">&lt;</span><span class="html">load-config</span> <span class="attr">filename</span><span class="kwrd">='${FLEX_HOME}/frameworks/flex-config.xml'</span><span class="kwrd">/&gt;</span>
+            <span class="kwrd">&lt;</span><span class="html">include-libraries</span> <span class="attr">file</span><span class="kwrd">='${libs.dir}'</span> <span class="kwrd">/&gt;</span>
+        <span class="kwrd">&lt;/</span><span class="html">mxmlc</span><span class="kwrd">&gt;</span>
+
+    <span class="kwrd">&lt;/</span><span class="html">target</span><span class="kwrd">&gt;</span>
+
+    <span class="kwrd">&lt;</span><span class="html">target</span> <span class="attr">name</span><span class="kwrd">='create-html-wrapper'</span><span class="kwrd">&gt;</span>
+        <span class="kwrd">&lt;</span><span class="html">copy</span> <span class="attr">todir</span><span class="kwrd">='${deploypath.dir}'</span> <span class="attr">overwrite</span><span class="kwrd">="true"</span><span class="kwrd">&gt;</span>
+              <span class="kwrd">&lt;</span><span class="html">fileset</span> <span class="attr">dir</span><span class="kwrd">='${wrapper.dir}'</span><span class="kwrd">&gt;</span>
+               <span class="kwrd">&lt;</span><span class="html">exclude</span> <span class="attr">name</span><span class="kwrd">='**/index.template.html'</span> <span class="kwrd">/&gt;</span>
+               <span class="kwrd">&lt;</span><span class="html">exclude</span> <span class="attr">name</span><span class="kwrd">='**/index.template.html.svntmp'</span> <span class="kwrd">/&gt;</span>
+               <span class="kwrd">&lt;</span><span class="html">exclude</span> <span class="attr">name</span><span class="kwrd">='.svn'</span> <span class="kwrd">/&gt;</span>
+              <span class="kwrd">&lt;/</span><span class="html">fileset</span><span class="kwrd">&gt;</span>
+        <span class="kwrd">&lt;/</span><span class="html">copy</span><span class="kwrd">&gt;</span>
+          <span class="rem">&lt;!-- Copy and rename the index.template.html --&gt;</span>
+         <span class="kwrd">&lt;</span><span class="html">copy</span> <span class="attr">file</span><span class="kwrd">='${wrapper.dir}/index.template.html'</span>
+              <span class="attr">tofile</span><span class="kwrd">='${html.file}'</span> <span class="kwrd">/&gt;</span>
+          <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+              <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+              <span class="attr">flags</span><span class="kwrd">='gs'</span>
+              <span class="attr">match</span><span class="kwrd">='\$\{width\}'</span>
+              <span class="attr">replace</span><span class="kwrd">='100%'</span><span class="kwrd">/&gt;</span>
+           <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+              <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+              <span class="attr">flags</span><span class="kwrd">='gs'</span>
+              <span class="attr">match</span><span class="kwrd">='\$\{height\}'</span>
+              <span class="attr">replace</span><span class="kwrd">='100%'</span><span class="kwrd">/&gt;</span>
+         <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+              <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+              <span class="attr">flags</span><span class="kwrd">='gs'</span>
+              <span class="attr">match</span><span class="kwrd">='\$\{title\}'</span>
+              <span class="attr">replace</span><span class="kwrd">='${APP_TITLE}'</span>
+              <span class="attr">encoding</span><span class="kwrd">='utf-8'</span><span class="kwrd">/&gt;</span>
+         <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+              <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+              <span class="attr">flags</span><span class="kwrd">='gs'</span>
+              <span class="attr">match</span><span class="kwrd">='\$\{version_major\}'</span>
+              <span class="attr">replace</span><span class="kwrd">='${version.major}'</span><span class="kwrd">/&gt;</span>
+         <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+              <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+              <span class="attr">flags</span><span class="kwrd">='gs'</span>
+              <span class="attr">match</span><span class="kwrd">='\$\{version_minor\}'</span>
+              <span class="attr">replace</span><span class="kwrd">='${version.minor}'</span><span class="kwrd">/&gt;</span>
+           <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+              <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+              <span class="attr">flags</span><span class="kwrd">='gs'</span>
+              <span class="attr">match</span><span class="kwrd">='\$\{version_revision\}'</span>
+              <span class="attr">replace</span><span class="kwrd">='${version.revision}'</span><span class="kwrd">/&gt;</span>
+         <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+              <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+              <span class="attr">flags</span><span class="kwrd">='gs'</span>
+              <span class="attr">match</span><span class="kwrd">='\$\{application\}'</span>
+              <span class="attr">replace</span><span class="kwrd">='${APP_TITLE}'</span><span class="kwrd">/&gt;</span>
+          <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+              <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+              <span class="attr">flags</span><span class="kwrd">='gs'</span>
+              <span class="attr">match</span><span class="kwrd">='\$\{bgcolor\}'</span>
+              <span class="attr">replace</span><span class="kwrd">='#FFFFFF'</span><span class="kwrd">/&gt;</span>
+         <span class="kwrd">&lt;</span><span class="html">replaceregexp</span>
+              <span class="attr">file</span><span class="kwrd">='${html.file}'</span>
+              <span class="attr">flags</span><span class="kwrd">='gs'</span>
+              <span class="attr">match</span><span class="kwrd">='\$\{swf\}'</span>
+              <span class="attr">replace</span><span class="kwrd">='${application.name}'</span><span class="kwrd">/&gt;</span> 
+
+    <span class="kwrd">&lt;/</span><span class="html">target</span><span class="kwrd">&gt;</span>
+<span class="kwrd">&lt;/</span><span class="html">project</span><span class="kwrd">&gt;</span></pre>

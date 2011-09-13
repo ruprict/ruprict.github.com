@@ -1,0 +1,117 @@
+--- 
+layout: post
+title: The Bitter Coder Tutorials, Binsor Style
+tags: 
+- Binsor
+- Castle
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1215723277"
+  _edit_last: "3307217"
+---
+I blather on and on about <a class="zem_slink" title="Windsor Castle" rel="geolocation" href="http://maps.google.com/maps?ll=51.4838888889,-0.604444444444&amp;spn=0.01,0.01&amp;q=51.4838888889,-0.604444444444&amp;t=h">Windsor</a> and how I adore it, much to the annoyance of the other devs that are forced to work with me.  My last few uses of the Windsor container used Binsor as the configuration language, and some of my chums that are new to the Windsor/DI landscape have had to go from not using to Windsor to using it with Binsor.  There are not very many good Binsor tutorials out there that I could find, so I figured I would take some of the best Windsor tutorials and redo them using Binsor.  These tutorials are, of course, the <a href="http://wiki.bittercoder.com/Default.aspx?Page=ContainerTutorials&amp;AspxAutoDetectCookieSupport=1" target="_blank">Bitter Coder Tutorials</a> on Windsor and they are wonderful.  I figured someone would have done this by now, but I couldn't find it, so if this is a duplication of someone else's effort, I duly apologize.
+
+First off, a brief definition of Binsor.  Binsor is a <a class="zem_slink" title="Domain-specific language" rel="wikipedia" href="http://en.wikipedia.org/wiki/Domain-specific_language">Domain Specific Language</a> (DSL) written in <a class="zem_slink" title="Boo (programming language)" rel="homepage" href="http://boo.codehaus.org/">Boo</a> with the specific purpose of configuring the Windsor container.  The "default" configuration option for Windsor (and most .NET based configuration approaches) is XML, which is fine.  However, XML can quickly get unwieldy, has no ability to perform any real logic, and (let's face it) is just not sexy.
+
+So, off we go, to the first tutorial, found <a href="http://blog.bittercoder.com/PermaLink,guid,bc382e38-a6c6-4e98-840e-ea00d635fc5e.aspx" target="_blank">here</a>.
+<h2>Simple Configuration</h2>
+So, before we get to the code, in order to get Binsor to work, you'll need the following references:
+
+From Rhino Tools (<a href="http://sourceforge.net/projects/rhino-tools/" target="_blank">http://sourceforge.net/projects/rhino-tools/</a>)
+<ul>
+	<li>Boo.Lang</li>
+	<li>Boo.Lang.Compiler</li>
+	<li>Boo.Lang.Extensions</li>
+	<li>Boo.Lang.Parser</li>
+	<li>Rhino.Commons.Binsor</li>
+	<li>Rhino.Commons.Clr</li>
+	<li>Rhino.DSL</li>
+</ul>
+From Castle (<a href="http://www.castleproject.org/" target="_blank">http://www.castleproject.org/</a>)
+<ul>
+	<li>Castle.Core</li>
+	<li>Castle.DynamicProxy2</li>
+	<li>Castle.MicroKernal</li>
+	<li>Castle.Windsor</li>
+</ul>
+My first solution has 2 projects, one class library and one console app.  The above references all go on the console app only.
+
+Our tax calculator looks just like the Bitter Coder's
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red91\green105\blue106;\red26\green24\blue21;\red222\green222\blue203;\red199\green199\blue165;\red150\green120\blue120;\red121\green151\blue84;\red140\green112\blue80;}??\fs30 \cf1\cb2\highlight2 namespace\cf3  \cf4 BitterCoder\cf5 .\cf4 Tutorials\cf5 .\cf4 Binsor\cf5 .\cf4 Core\par ??\cf3 \{\par ??    \cf1 public\cf3  \cf1 class\cf3  \cf6 TaxCalculator\par ??\cf3     \{\par ??        \cf1 private\cf3  \cf1 decimal\cf3  \cf4 _rate\cf3  \cf5 =\cf3  \cf7 0.125m\cf3 ;\par ??        \cf1 public\cf3  \cf1 decimal\cf3  \cf4 Rate\par ??\cf3         \{\par ??\par ??            \cf1 set\cf3  \{ \cf4 _rate\cf3  \cf5 =\cf3  \cf1 value\cf3 ; \}\par ??\par ??            \cf1 get\cf3  \{ \cf1 return\cf3  \cf4 _rate\cf3 ; \}\par ??\par ??        \}\par ??\par ??        \cf1 public\cf3  \cf1 decimal\cf3  \cf4 CalculateTax\cf3 (\cf1 decimal\cf3  \cf4 gross\cf3 )\par ??        \{\par ??\par ??            \cf1 return\cf3  \cf6 Math\cf5 .\cf4 Round\cf3 (\cf4 _rate\cf3  \cf5 *\cf3  \cf4 gross\cf3 , \cf7 2\cf3 );\par ??\par ??        \}\par ??\par ??    \}\par ??\}} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;"><span style="color:#5b696a;">namespace</span> <span style="color:#c7c7a5;">BitterCoder</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Tutorials</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Binsor</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Core</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;"> public</span> <span style="color:#5b696a;">class</span> <span style="color:#799754;">TaxCalculator</span></p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#5b696a;"> private</span> <span style="color:#5b696a;">decimal</span> <span style="color:#c7c7a5;">_rate</span> <span style="color:#967878;">=</span> <span style="color:#8c7050;">0.125m</span>;</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#5b696a;"> public</span> <span style="color:#5b696a;">decimal</span> <span style="color:#c7c7a5;">Rate</span></p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#5b696a;"> set</span> { <span style="color:#c7c7a5;">_rate</span> <span style="color:#967878;">=</span> <span style="color:#5b696a;">value</span>; }</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#5b696a;"> get</span> { <span style="color:#5b696a;">return</span> <span style="color:#c7c7a5;">_rate</span>; }</p>
+<p style="padding-left:60px;margin:0;"></p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:60px;margin:0;"><span style="color:#5b696a;"> public</span> <span style="color:#5b696a;">decimal</span> <span style="color:#c7c7a5;">CalculateTax</span>(<span style="color:#5b696a;">decimal</span> <span style="color:#c7c7a5;">gross</span>)</p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"></p>
+<p style="padding-left:90px;margin:0;"><span style="color:#5b696a;"> return</span> <span style="color:#799754;">Math</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Round</span>(<span style="color:#c7c7a5;">_rate</span> <span style="color:#967878;">*</span> <span style="color:#c7c7a5;">gross</span>, <span style="color:#8c7050;">2</span>);</p>
+<p style="padding-left:60px;margin:0;"></p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+Here's where we take a different path from the XML configuration.  Setting up the container looks for the Binsor script named here ("Windsor.boo")  When using Binsor, make sure you set the right build properties for the .boo file.  In this case, we want it to be copied to the output directory.  If, however, you were working in a web environment, you could just mark the file as content and it'll be copied to the root of your directory.  Now, let's look at the console app and the setting up of the container:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red91\green105\blue106;\red26\green24\blue21;\red222\green222\blue203;\red199\green199\blue165;\red150\green120\blue120;\red121\green151\blue84;\red113\green131\blue132;\red140\green112\blue80;}??\fs30 \cf1\cb2\highlight2 using\cf3  \cf4 System\cf3 ;\par ??\cf1 using\cf3  \cf4 System\cf5 .\cf4 Collections\cf5 .\cf4 Generic\cf3 ;\par ??\cf1 using\cf3  \cf4 System\cf5 .\cf4 Linq\cf3 ;\par ??\cf1 using\cf3  \cf4 System\cf5 .\cf4 Text\cf3 ;\par ??\cf1 using\cf3  \cf4 Castle\cf5 .\cf4 Core\cf3 ;\par ??\cf1 using\cf3  \cf4 Castle\cf5 .\cf4 Windsor\cf3 ;\par ??\cf1 using\cf3  \cf4 Rhino\cf5 .\cf4 Commons\cf5 .\cf4 Binsor\cf3 ;\par ??\cf1 using\cf3  \cf4 BitterCoder\cf5 .\cf4 Tutorials\cf5 .\cf4 Binsor\cf5 .\cf4 Core\cf3 ;\par ??\par ??\cf1 namespace\cf3  \cf4 BitterCoder\cf5 .\cf4 Tutorials\cf5 .\cf4 Binsor\cf5 .\cf4 ConsoleTester\par ??\cf3 \{\par ??    \cf1 class\cf3  \cf6 Program\par ??\cf3     \{\par ??        \cf1 static\cf3  \cf1 void\cf3  \cf4 Main\cf3 (\cf1 string\cf3 [] \cf4 args\cf3 )\par ??        \{\par ??\par ??            \cf7 IWindsorContainer\cf3  \cf4 container\cf3  \cf5 =\cf3  \cf1 new\cf3  \cf6 WindsorContainer\cf3 ()\cf5 .\cf4 Install\cf3 (\cf6 BinsorScript\cf5 .\cf4 FromFile\cf3 (\cf8 {\b "windsor.boo"}\cf3 ));\par ??\par ??            \cf6 TaxCalculator\cf3  \cf4 calculator\cf3  \cf5 =\cf3  \cf4 container\cf5 .\cf4 Resolve\cf5 &lt;\cf6 TaxCalculator\cf5 &gt;\cf3 ();\par ??\par ??\par ??\par ??            \cf1 decimal\cf3  \cf4 gross\cf3  \cf5 =\cf3  \cf8 100\cf3 ;\par ??\par ??            \cf1 decimal\cf3  \cf4 tax\cf3  \cf5 =\cf3  \cf4 calculator\cf5 .\cf4 CalculateTax\cf3 (\cf4 gross\cf3 );\par ??\par ??\par ??\par ??            \cf6 Console\cf5 .\cf4 WriteLine\cf3 (\cf8 {\b "Gross: \{0\}, Tax: \{1\}"}\cf3 , \cf4 gross\cf3 , \cf4 tax\cf3 );\par ??\par ??            \cf6 Console\cf5 .\cf4 Read\cf3 ();\par ??        \}\par ??    \}\par ??\}} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;"><span style="color:#5b696a;">using</span> <span style="color:#c7c7a5;">System</span>;</p>
+<p style="margin:0;"><span style="color:#5b696a;">using</span> <span style="color:#c7c7a5;">System</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Collections</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Generic</span>;</p>
+<p style="margin:0;"><span style="color:#5b696a;">using</span> <span style="color:#c7c7a5;">System</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Linq</span>;</p>
+<p style="margin:0;"><span style="color:#5b696a;">using</span> <span style="color:#c7c7a5;">System</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Text</span>;</p>
+<p style="margin:0;"><span style="color:#5b696a;">using</span> <span style="color:#c7c7a5;">Castle</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Core</span>;</p>
+<p style="margin:0;"><span style="color:#5b696a;">using</span> <span style="color:#c7c7a5;">Castle</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Windsor</span>;</p>
+<p style="margin:0;"><span style="color:#5b696a;">using</span> <span style="color:#c7c7a5;">Rhino</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Commons</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Binsor</span>;</p>
+<p style="margin:0;"><span style="color:#5b696a;">using</span> <span style="color:#c7c7a5;">BitterCoder</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Tutorials</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Binsor</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Core</span>;</p>
+<p style="margin:0;"></p>
+<p style="margin:0;"><span style="color:#5b696a;">namespace</span> <span style="color:#c7c7a5;">BitterCoder</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Tutorials</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Binsor</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">ConsoleTester</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;"> class</span> <span style="color:#799754;">Program</span></p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#5b696a;"> static</span> <span style="color:#5b696a;">void</span> <span style="color:#c7c7a5;">Main</span>(<span style="color:#5b696a;">string</span>[] <span style="color:#c7c7a5;">args</span>)</p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#718384;"> IWindsorContainer</span> <span style="color:#c7c7a5;">container</span> <span style="color:#967878;">=</span> <span style="color:#5b696a;">new</span> <span style="color:#799754;">WindsorContainer</span>()<span style="color:#967878;">.</span><span style="color:#c7c7a5;">Install</span>(<span style="color:#799754;">BinsorScript</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">FromFile</span>(<span style="font-weight:bold;color:#8c7050;">"windsor.boo"</span>));</p>
+<p style="padding-left:90px;margin:0;"></p>
+<p style="padding-left:90px;margin:0;"><span style="color:#799754;"> TaxCalculator</span> <span style="color:#c7c7a5;">calculator</span> <span style="color:#967878;">=</span> <span style="color:#c7c7a5;">container</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Resolve</span><span style="color:#967878;">&lt;</span><span style="color:#799754;">TaxCalculator</span><span style="color:#967878;">&gt;</span>();</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#5b696a;"> decimal</span> <span style="color:#c7c7a5;">gross</span> <span style="color:#967878;">=</span> <span style="color:#8c7050;">100</span>;</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#5b696a;"> decimal</span> <span style="color:#c7c7a5;">tax</span> <span style="color:#967878;">=</span> <span style="color:#c7c7a5;">calculator</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">CalculateTax</span>(<span style="color:#c7c7a5;">gross</span>);</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#799754;"> Console</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">WriteLine</span>(<span style="font-weight:bold;color:#8c7050;">"Gross: {0}, Tax: {1}"</span>, <span style="color:#c7c7a5;">gross</span>, <span style="color:#c7c7a5;">tax</span>);</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#799754;"> Console</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Read</span>();</p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+So, still just one line...groovy.  We use the Rhino.Common.Bindsor.BinsorScript class to read windsor.boo and convert it to the parameters windsor needs.  Let's look at the windsor.boo file now:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red222\green222\blue203;\red26\green24\blue21;}??\fs30 \cf1\cb2\highlight2 import System\par ??import System.Reflection\par ??import BitterCoder.Tutorials.Binsor.Core\par ??\par ??component "tax.calculator", TaxCalculator:\par ??\tab Rate=Convert.ToDecimal(0.25)} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;">import System</p>
+<p style="margin:0;">import System.Reflection</p>
+<p style="margin:0;">import BitterCoder.Tutorials.Binsor.Core</p>
+<p style="margin:0;"></p>
+<p style="margin:0;">component "tax.calculator", TaxCalculator:</p>
+<p style="padding-left:30px;margin:0;">Rate=Convert.ToDecimal(0.25)</p>
+
+</div>
+Five lines!  That's it!  And now you see one of the reasons why people like to use Binsor.  It's concise, readable, and can contain logic.  As you can see, I have access to any class in .NET that I wish to import, shown by my Convet.ToDecimal call to convert the rate to a decimal.
+
+If you run the console app, you'll see:  <strong>Gross: 100, Tax: 25.00 </strong>just like in the other tutorial.  Go ahead, mess with the rate and run it again.  It works.
+
+So, that's the first one down.  Next time we look at configuring arrays....
+<div class="zemanta-pixie" style="margin-top:10px;height:15px;"><a class="zemanta-pixie-a" title="Zemified by Zemanta" href="http://reblog.zemanta.com/zemified/973b28df-a7ae-47be-962f-b6519ad37573/"><img class="zemanta-pixie-img" style="border:medium none;float:right;" src="http://img.zemanta.com/reblog_e.png?x-id=973b28df-a7ae-47be-962f-b6519ad37573" alt="Zemanta Pixie" /></a></div>

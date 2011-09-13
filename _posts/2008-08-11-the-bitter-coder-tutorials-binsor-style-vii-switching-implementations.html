@@ -1,0 +1,118 @@
+--- 
+layout: post
+title: "The Bitter Coder Tutorials, Binsor Style VII: Switching Implementations"
+tags: 
+- Binsor
+- Castle
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1218476922"
+  _edit_last: "3307217"
+---
+Previous posts in the series:
+<ul>
+	<li><a href="http://ruprict.wordpress.com/2008/07/11/the-bitter-coder-tutorials-binsor-style/" target="_blank">Part 1</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/12/the-bitter-coder-tutorials-binsor-style-arrays/" target="_blank">Part 2</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/14/the-bitter-coder-tutorials-binsor-style-iii-dictonaries/" target="_blank">Part 3</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/16/the-bitter-coder-tutorials-binsor-style-iv-switching-configs/" target="_blank">Part 4</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/07/28/the-bitter-coder-tutorial-binsor-style-v-configuration-parameters/" target="_blank">Part 5</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/08/04/the-bitter-coder-tutorials-binsor-style-vi-switching-lifestyles/" target="_blank">Part 6</a></li>
+</ul>
+In <a href="http://blog.bittercoder.com/PermaLink,guid,ff608602-ad65-48b8-9e03-0049eb6c6cd6.aspx" target="_blank">tutorial #7</a>, Alex shows us the real meat of DI, which is switching out implementations.  This is where I had my "A-HA!" moment with Windsor and where I continue to see the most obvious value.
+
+As Alex states, when switching implementations, you take the contract of your implementation and stuff it in an interface.  Here's the interface for our example:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;\red0\green0\blue255;\red43\green145\blue175;}??\fs20  \cf3 public\cf0  \cf3 interface\cf0  \cf4 IMessageOfTheDay\par ??\cf0     \{\par ??        \cf3 string\cf0  GetMessageOfTheDay();\par ??    \}} -->
+<div style="border:thin solid #000000;background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;"><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;\red0\green0\blue255;\red43\green145\blue175;}??\fs20  \cf3 public\cf0  \cf3 interface\cf0  \cf4 IMessageOfTheDay\par ??\cf0     \{\par ??        \cf3 string\cf0  GetMessageOfTheDay();\par ??    \}} -->
+<div style="border:thin solid #000000;background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">interface</span> <span style="color:#2b91af;">IMessageOfTheDay</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">string</span> GetMessageOfTheDay();</p>
+<p style="margin:0;">}</p>
+
+</div>
+</div>
+And the same two implementations from Alex:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;}??\fs20 \cf1 public\cf0  \cf1 class\cf0  \cf4 StaticMessageOfTheDay\cf0 :\cf4 IMessageOfTheDay\par ??\cf0     \{\par ??        \cf1 private\cf0  \cf1 string\cf0  _message;\par ??        \cf1 public\cf0  \cf1 string\cf0  Message\par ??        \{\par ??            \cf1 set\cf0  \{ _message = \cf1 value\cf0 ; \}\par ??        \}\par ??\par ??        \cf1 public\cf0  \cf1 string\cf0  GetMessageOfTheDay()\par ??        \{\par ??            \cf1 return\cf0  _message;\par ??        \}\par ??    \}} -->
+<div style="border:thin solid #000000;background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;"><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;}??\fs20 \cf1 public\cf0  \cf1 class\cf0  \cf4 StaticMessageOfTheDay\cf0 :\cf4 IMessageOfTheDay\par ??\cf0     \{\par ??        \cf1 private\cf0  \cf1 string\cf0  _message;\par ??        \cf1 public\cf0  \cf1 string\cf0  Message\par ??        \{\par ??            \cf1 set\cf0  \{ _message = \cf1 value\cf0 ; \}\par ??        \}\par ??\par ??        \cf1 public\cf0  \cf1 string\cf0  GetMessageOfTheDay()\par ??        \{\par ??            \cf1 return\cf0  _message;\par ??        \}\par ??    \}} -->
+<div style="border:thin solid #000000;background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">StaticMessageOfTheDay</span>:<span style="color:#2b91af;">IMessageOfTheDay</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">string</span> _message;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">string</span> Message</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">set</span> { _message = <span style="color:blue;">value</span>; }</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">string</span> GetMessageOfTheDay()</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">return</span> _message;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+</div>
+<p style="background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;">And #2:</p>
+
+<div style="background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;"><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 public\cf0  \cf1 string\cf0  GetMessageOfTheDay()\par ??        \{\par ??            \cf4 WebClient\cf0  client = \cf1 new\cf0  \cf4 WebClient\cf0 ();\par ??\par ??            \cf1 string\cf0  content = client.DownloadString(\cf5 "http://en.wikiquote.org/wiki/Main_Page"\cf0 );\par ??            \cf1 string\cf0  toFind = \cf5 "&lt;td align=\\"center\\"&gt;"\cf0 ;\par ??            \cf1 int\cf0  start = content.IndexOf(toFind) + toFind.Length + 56;\par ??            \cf1 int\cf0  length = content.IndexOf(\cf5 "&lt;a"\cf0 , start) - start;\par ??            \cf1 return\cf0  content.Substring(start, length);\par ??\par ??        \}} -->
+<div style="border:thin solid #000000;background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;"><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 public\cf0  \cf1 string\cf0  GetMessageOfTheDay()\par ??        \{\par ??            \cf4 WebClient\cf0  client = \cf1 new\cf0  \cf4 WebClient\cf0 ();\par ??\par ??            \cf1 string\cf0  content = client.DownloadString(\cf5 "http://en.wikiquote.org/wiki/Main_Page"\cf0 );\par ??            \cf1 string\cf0  toFind = \cf5 "&lt;td align=\\"center\\"&gt;"\cf0 ;\par ??            \cf1 int\cf0  start = content.IndexOf(toFind) + toFind.Length + 56;\par ??            \cf1 int\cf0  length = content.IndexOf(\cf5 "&lt;a"\cf0 , start) - start;\par ??            \cf1 return\cf0  content.Substring(start, length);\par ??\par ??        \}} -->
+<div style="border:thin solid #000000;background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;"><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 public\cf0  \cf1 class\cf0  \cf4 WikiQuotesMessageOfTheDay\cf0  : \cf4 IMessageOfTheDay\par ??\cf0     \{\par ??\par ??        \cf1 public\cf0  \cf1 string\cf0  GetMessageOfTheDay()\par ??        \{\par ??            \cf4 WebClient\cf0  client = \cf1 new\cf0  \cf4 WebClient\cf0 ();\par ??\par ??            \cf1 string\cf0  content = client.DownloadString(\cf5 "http://en.wikiquote.org/wiki/Main_Page"\cf0 );\par ??            \cf1 string\cf0  toFind = \cf5 "&lt;td align=\\"center\\"&gt;"\cf0 ;\par ??            \cf1 int\cf0  start = content.IndexOf(toFind) + toFind.Length + 56;\par ??            \cf1 int\cf0  length = content.IndexOf(\cf5 "&lt;a"\cf0 , start) - start;\par ??            \cf1 return\cf0  content.Substring(start, length);\par ??\par ??        \}\par ??\par ??    \}} -->
+<div style="border:thin solid #000000;background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">WikiQuotesMessageOfTheDay</span> : <span style="color:#2b91af;">IMessageOfTheDay</span></p>
+<p style="margin:0;">{</p>
+<p style="margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">string</span> GetMessageOfTheDay()</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;">WebClient</span> client = <span style="color:blue;">new</span> <span style="color:#2b91af;">WebClient</span>();</p>
+<p style="padding-left:60px;margin:0;"></p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">string</span> content = client.DownloadString(<span style="color:#a31515;">"http://en.wikiquote.org/wiki/Main_Page"</span>);</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">string</span> toFind = <span style="color:#a31515;">"&lt;td align=\"center\"&gt;"</span>;</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">int</span> start = content.IndexOf(toFind) + toFind.Length + 56;</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">int</span> length = content.IndexOf(<span style="color:#a31515;">"&lt;a"</span>, start) - start;</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">return</span> content.Substring(start, length);</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;"></p>
+<p style="margin:0;">}</p>
+
+</div>
+</div>
+</div>
+</div>
+(I had to change the string that Alex was searching on and hardcode a length to the beginning of the quote, so maybe I'll rename this class to HorrificQuoteOfTheDay or something)
+
+So, let us get to the Binsor config.  First off, I put my interface in a separate namespace, so I had to add an import clause to the top of the Windsor.boo file.  Then, I add the StaticMessageOfTheDay component:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;}??\fs20 import BitterCoder.Tutorials.Binsor.Core.Interfaces\par ??\par ??component "motd.service",IMessageOfTheDay,StaticMessageOfTheDay:\par ??\tab message="Welcome to my Binsor tutorials"} -->
+<div style="border:thin solid #000000;background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;">
+<p style="margin:0;">import BitterCoder.Tutorials.Binsor.Core.Interfaces</p>
+<p style="margin:0;"></p>
+<p style="margin:0;"><span style="color:#2b91af;"> </span></p>
+<p style="margin:0;">component "motd.service",IMessageOfTheDay,StaticMessageOfTheDay:</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;">m</span>essage="Welcome to my Binsor tutorials"</p>
+
+</div>
+Now, when I run the project, I get:
+
+<strong>MOTD: Welcome to my Binsor tutorials</strong>
+
+Changing out the motd.service component for the Wiki Quotes:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;}??\fs20 component "motd.service",IMessageOfTheDay,WikiQuotesMessageOfTheDay} -->
+<div style="border:thin solid #000000;background:white none repeat scroll 0 0;font-family:Courier New;font-size:10pt;color:black;">
+<p style="margin:0;"><span style="color:#2b91af;"> </span> component "motd.service",IMessageOfTheDay,WikiQuotesMessageOfTheDay</p>
+
+</div>
+The running program now gives:
+
+<strong>MOTD: Those works of art which have scooped up the truth and presented it to us
+as a living force â?" they take hold of us, compel us, and nobody ever, not even
+in ages to come, will appear to refute them. ~</strong>
+
+It's just that easy.  Our quote is from <a title="Aleksandr Solzhenitsyn" href="http://en.wikiquote.org/wiki/Aleksandr_Solzhenitsyn">Aleksandr Solzhenitsyn</a>, whom I can safely say I've never heard of before, but I will take as a sign that this blog post is a work of art.
+
+Next time, switching implementations by id....

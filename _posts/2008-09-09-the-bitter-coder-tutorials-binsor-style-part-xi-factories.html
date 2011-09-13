@@ -1,0 +1,159 @@
+--- 
+layout: post
+title: "The Bitter Coder Tutorials, Binsor Style: Part XI, Factories"
+tags: 
+- Binsor
+- Castle
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1220964970"
+---
+Previous posts in the series:
+<ul>
+	<li><a href="../2008/07/11/the-bitter-coder-tutorials-binsor-style/" target="_blank">Part 1</a></li>
+	<li><a href="../2008/07/12/the-bitter-coder-tutorials-binsor-style-arrays/" target="_blank">Part 2</a></li>
+	<li><a href="../2008/07/14/the-bitter-coder-tutorials-binsor-style-iii-dictonaries/" target="_blank">Part 3</a></li>
+	<li><a href="../2008/07/16/the-bitter-coder-tutorials-binsor-style-iv-switching-configs/" target="_blank">Part 4</a></li>
+	<li><a href="../2008/07/28/the-bitter-coder-tutorial-binsor-style-v-configuration-parameters/" target="_blank">Part 5</a></li>
+	<li><a href="../2008/08/04/the-bitter-coder-tutorials-binsor-style-vi-switching-lifestyles/" target="_blank">Part 6</a></li>
+	<li><a href="../2008/08/11/the-bitter-coder-tutorials-binsor-style-vii-switching-implementations/" target="_blank">Part 7</a></li>
+	<li><a href="../2008/08/18/the-bitter-coder-tutorials-viii-referencing-instances-by-key/" target="_blank">Part 8</a></li>
+	<li><a href="../?p=58" target="_blank">Part 9</a></li>
+	<li><a href="http://ruprict.wordpress.com/2008/09/02/the-bitter-coder-tutorials-binsor-style-part-x-setter-injection/" target="_self">Part 10</a></li>
+</ul>
+In this post, I will be discussing how to use Binsor to configure the <a href="http://www.castleproject.org/container/facilities/trunk/factory/index.html" target="_blank">factory support facility</a> in Windsor.  A "<a href="http://www.castleproject.org/container/documentation/trunk/concepts/facility.html" target="_blank">facility</a>" is (as Alex <a href="http://blog.bittercoder.com/PermaLink,guid,07925133-ae33-41dd-bc50-2b49a5434e19.aspx" target="_blank">states</a>) an add-in to the Windsor container that changes or adds what the container can do.  Facilities are a big part of what makes Windsor so freaking kick-ass, and other facilities are the <a href="http://www.castleproject.org/container/facilities/trunk/logging/index.html" target="_blank">logging facility</a>, the <a href="http://www.castleproject.org/container/facilities/trunk/atm/index.html" target="_blank">transaction facility</a>, and (the oft blogged about here) <a href="http://www.castleproject.org/container/facilities/trunk/wcf/index.html" target="_blank">WCF facility</a>.
+
+So, let's get to the code.  Here's our interface:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;}??\fs20 \cf1 public\cf0  \cf1 interface\cf0  \cf4 ISmsService\par ??\cf0     \{\par ??        \cf1 void\cf0  SendMessage(\cf1 string\cf0  number, \cf1 string\cf0  message);\par ??    \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">interface</span> <span style="color:#2b91af;">ISmsService</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">void</span> SendMessage(<span style="color:blue;">string</span> number, <span style="color:blue;">string</span> message);</p>
+<p style="margin:0;">}</p>
+
+</div>
+And our SmsService and SmsConfig classes:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 public\cf0  \cf1 class\cf0  \cf4 SmsService\cf0  : \cf4 ISmsService\par ??\cf0     \{\par ??        \cf1 private\cf0  \cf4 SmsConfig\cf0  _config;\par ??\par ??        \cf1 public\cf0  \cf1 void\cf0  SetConfig(\cf4 SmsConfig\cf0  config)\par ??        \{\par ??            _config = config;\par ??        \}\par ??\par ??        \cf1 public\cf0  \cf1 void\cf0  SendMessage(\cf1 string\cf0  number, \cf1 string\cf0  message)\par ??        \{\par ??            \cf4 Console\cf0 .WriteLine(\cf5 "SMS Message: \{0\} sent to \{1\} with account \{2\}"\cf0 , message, number, _config.UserName);\par ??        \}\par ??    \}\par ??    \cf1 public\cf0  \cf1 class\cf0  \cf4 SmsConfig\par ??\cf0     \{\par ??\par ??        \cf1 private\cf0  \cf1 string\cf0  _userName;\par ??        \cf1 private\cf0  \cf1 string\cf0  _password;\par ??        \cf1 private\cf0  \cf1 int\cf0  _retryAttempts\{ \cf1 get\cf0 ; \cf1 set\cf0 ;\}\par ??\par ??        \cf1 internal\cf0  \cf1 string\cf0  UserName\par ??        \{\par ??            \cf1 get\cf0  \{ \cf1 return\cf0  _userName; \}\par ??        \}\par ??\par ??        \cf1 internal\cf0  \cf1 string\cf0  Password\par ??        \{\par ??            \cf1 get\cf0  \{ \cf1 return\cf0  _password; \}\par ??\par ??        \}\par ??\par ??        \cf1 public\cf0  \cf1 void\cf0  SetCredentials(\cf1 string\cf0  user, \cf1 string\cf0  pwd)\par ??        \{\par ??            _userName = user;\par ??            _password = pwd;\par ??        \}\par ??    \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">SmsService</span> : <span style="color:#2b91af;">ISmsService</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:#2b91af;">SmsConfig</span> _config;</p>
+<p style="padding-left:30px;margin:0;"> </p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">void</span> SetConfig(<span style="color:#2b91af;">SmsConfig</span> config)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;">_config = config;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"> </p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">void</span> SendMessage(<span style="color:blue;">string</span> number, <span style="color:blue;">string</span> message)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"SMS Message: {0} sent to {1} with account {2}"</span>, message, number, _config.UserName);</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">SmsConfig</span></p>
+<p style="margin:0;">{</p>
+<p style="margin:0;"> </p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">string</span> _userName;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">string</span> _password;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">int</span> _retryAttempts{ <span style="color:blue;">get</span>; <span style="color:blue;">set</span>;}</p>
+<p style="padding-left:30px;margin:0;"> </p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">internal</span> <span style="color:blue;">string</span> UserName</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">get</span> { <span style="color:blue;">return</span> _userName; }</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"> </p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">internal</span> <span style="color:blue;">string</span> Password</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">get</span> { <span style="color:blue;">return</span> _password; }</p>
+<p style="padding-left:30px;margin:0;"> </p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"> </p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">void</span> SetCredentials(<span style="color:blue;">string</span> user, <span style="color:blue;">string</span> pwd)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;">_userName = user;</p>
+<p style="padding-left:60px;margin:0;">_password = pwd;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+Now, showing what is necessary to instantiate our SmsService class:
+<div style="border:1px dashed;background:white none repeat scroll 0 50%;font-family:Courier New;font-size:10pt;color:black;">
+<p style="margin:0;"><span style="color:#2b91af;">SmsService</span> service = <span style="color:blue;">new</span> <span style="color:#2b91af;">SmsService</span>();</p>
+<p style="margin:0;"> </p>
+<p style="margin:0;"><span style="color:#2b91af;">SmsService</span>.<span style="color:#2b91af;">SmsConfig</span> config = <span style="color:blue;">new</span> <span style="color:#2b91af;">SmsService</span>.<span style="color:#2b91af;">SmsConfig</span>();</p>
+<p style="margin:0;">config.SetCredentials(<span style="color:#a31515;">"joe"</span>, <span style="color:#a31515;">"secret"</span>);</p>
+<p style="margin:0;">config.RetryAttempts = 3;</p>
+<p style="margin:0;"> </p>
+<p style="margin:0;">service.SetConfig(config);</p>
+
+</div>
+That is not gonna work with Windsor straight away.  So, we need a factory to take care of this for us:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;\red0\green0\blue255;\red43\green145\blue175;}??\fs20     \cf3 public\cf0  \cf3 class\cf0  \cf4 SmsServiceFactory\par ??\cf0     \{\par ??        \cf3 private\cf0  \cf3 string\cf0  _userName;\par ??        \cf3 private\cf0  \cf3 string\cf0  _password;\par ??        \cf3 private\cf0  \cf3 int\cf0  _retryAttempts \{ \cf3 get\cf0 ; \cf3 set\cf0 ; \}\par ??\par ??        \cf3 public\cf0  SmsServiceFactory(\cf3 string\cf0  _userName, \cf3 string\cf0  _password)\par ??        \{\par ??            \cf3 this\cf0 ._userName = _userName;\par ??            \cf3 this\cf0 ._password = _password;\par ??            _retryAttempts = 3;\par ??        \}\par ??\par ??        \cf3 public\cf0  \cf4 ISmsService\cf0  CreateService()\par ??        \{\par ??            \cf4 SmsService\cf0  service = \cf3 new\cf0  \cf4 SmsService\cf0 ();\par ??            \cf4 SmsConfig\cf0  config = \cf3 new\cf0  \cf4 SmsConfig\cf0 ();\par ??            config.SetCredentials(_userName,_password);\par ??            service.SetConfig(config);\par ??\par ??            \cf3 return\cf0  service;\par ??        \}\par ??    \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">SmsServiceFactory</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">string</span> _userName;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">string</span> _password;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">int</span> _retryAttempts { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</p>
+<p style="padding-left:30px;margin:0;"> </p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> SmsServiceFactory(<span style="color:blue;">string</span> userName, <span style="color:blue;">string</span> password)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">this</span>._userName = userName;</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">this</span>._password = password;</p>
+<p style="padding-left:60px;margin:0;">_retryAttempts = 3;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"> </p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:#2b91af;">ISmsService</span> CreateService()</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;">SmsService</span> service = <span style="color:blue;">new</span> <span style="color:#2b91af;">SmsService</span>();</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#2b91af;">SmsConfig</span> config = <span style="color:blue;">new</span> <span style="color:#2b91af;">SmsConfig</span>();</p>
+<p style="padding-left:60px;margin:0;">config.SetCredentials(_userName,_password);</p>
+<p style="padding-left:60px;margin:0;">service.SetConfig(config);</p>
+<p style="padding-left:60px;margin:0;"> </p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">return</span> service;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+Right.  Now we have to get our supporting Binsor squared away.  First off, let's register the facility.  Add the following import statement to the top of your .boo file:
+<pre style="font-size:x-small;">import Castle.Facilities.FactorySupport from Castle.MicroKernel</pre>
+So, Binsor knows where to get the facility.  Then, the facility itself:
+<pre>facility FactorySupportFacility</pre>
+Now we have to add our factory and our component:
+<pre style="border:thin solid black;">component "smsservice.factory", SmsServiceFactory:
+    userName="joe"
+    password="secret"
+
+component "smsservice.default", ISmsService,SmsService:
+    @factoryId=@smsservice.factory
+    @factoryCreate="CreateService"</pre>
+Last, but not least, the program:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 private\cf0  \cf1 static\cf0  \cf1 void\cf0  Main(\cf1 string\cf0 [] args)\par ??        \{\par ??            container = \cf1 new\cf0  \cf4 WindsorContainer\cf0 ().Install(\cf4 BinsorScript\cf0 .FromFile(\cf5 "windsor.boo"\cf0 ));\par ??            \cf1 var\cf0  handler = container.Resolve&lt;\cf4 StepHandler\cf0 &gt;();\par ??            \cf1 string\cf0  method = \cf5 "Step"\cf0  + handler.StepNumber;\par ??\par ??            \cf4 Type\cf0  type = \cf1 typeof\cf0  (\cf4 Program\cf0 );\par ??            type.InvokeMember(method, \cf4 BindingFlags\cf0 .Default | \cf4 BindingFlags\cf0 .InvokeMethod, \cf1 null\cf0 , \cf1 null\cf0 , \cf1 new\cf0  \cf1 object\cf0 [] \{\});\par ??\par ??            \cf4 Console\cf0 .Read();\par ??        \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">static</span> <span style="color:blue;">void</span> Main(<span style="color:blue;">string</span>[] args)</p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;">container = <span style="color:blue;">new</span> <span style="color:#2b91af;">WindsorContainer</span>().Install(<span style="color:#2b91af;">BinsorScript</span>.FromFile(<span style="color:#a31515;">"windsor.boo"</span>));</p>
+<p style="padding-left:30px;margin:0;"><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red43\green145\blue175;\red255\green255\blue255;\red0\green0\blue0;\red163\green21\blue21;}??\fs20 \cf1 ISmsService\cf0  smsService = container.Resolve&lt;\cf1 ISmsService\cf0 &gt;();\par ??            smsService.SendMessage(\cf4 "+465556555"\cf0 , \cf4 "testing testing...1.2.3"\cf0 );} --></p>
+
+<div style="background-image:none;background-repeat:repeat;background-attachment:scroll;background-color:white;font-family:'Courier New';font-size:8pt;color:black;padding-left:30px;background-position:0 0;">
+<p style="margin:0;"><span style="color:#2b91af;">ISmsService</span> smsService = container.Resolve&lt;<span style="color:#2b91af;">ISmsService</span>&gt;();</p>
+<p style="margin:0;">smsService.SendMessage(<span style="color:#a31515;">"+465556555"</span>, <span style="color:#a31515;">"testing testing...1.2.3"</span>);</p>
+
+</div>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;">Console</span>.Read();</p>
+<p style="margin:0;">}</p>
+
+</div>
+Running the console, gives us:
+
+<strong>SMS Message: testing testing...1.2.3 sent to +465556555 with account joe</strong>
+
+Seems we're looking at the Decorator Pattern with Windsor next...
+<div class="zemanta-pixie" style="margin-top:10px;height:15px;"><a class="zemanta-pixie-a" title="Zemified by Zemanta" href="http://reblog.zemanta.com/zemified/58ac3891-3867-4c08-8335-4d38492ab773/"><img class="zemanta-pixie-img" style="border:medium none;float:right;" src="http://img.zemanta.com/reblog_e.png?x-id=58ac3891-3867-4c08-8335-4d38492ab773" alt="Reblog this post [with Zemanta]" /></a></div>

@@ -1,0 +1,74 @@
+--- 
+layout: post
+title: Continuous Integration with Flex, Hudson, and ArcGIS Server, Part IV
+tags: 
+- ArcDeveloper
+- Continuous Integration
+- Flex
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: 1308396267:3307217
+  _edit_last: "3307217"
+---
+(<a href="http://ruprict.wordpress.com/2009/07/31/continuous-integration-with-flex-hudson-and-arcgis-server-part-1/" target="_blank">Part 1</a>, <a href="http://ruprict.wordpress.com/2009/08/04/continuous-integration-with-flex-hudson-and-arcgis-server-part-2/" target="_blank">Part 2</a>, <a href="http://ruprict.wordpress.com/2009/08/24/continuous-integration-with-flex-hudson-and-arcgis-server-part-3/" target="_blank">Part 3</a>, <a href="http://ruprict.net/2009/12/11/continuous-integration-with-flex-hudson-and-arcgis-server-part-v/" target="_blank">Part 5</a>)
+
+(Note:  I have started moving our builds to rake, the Ruby build DSL.  It is, howyousay, fantastic.  I see more posts in our series….)
+
+Now that the school year has begun, I can get back into this series.  Last we left, we had ant running the build and the scripts.  Now it’s time to make the build portable, which means that our build.properties file needs to well, go away.  All this really means is taking build.properties and copying it to build.properties.template.  Then deleting build.properties out of source control.  Anyone getting our build our of source control will have to create a local build.properties file, complete with all the settings that make the build go.  This is a “best practice” and stops developers from overwriting each others’ properties when they check in the build file.
+
+So, do that.  Rename build.properties to build.properties.template.  If you ant build-all now, the build throws an error, something about ${wrapper.dir} not found.  That’s because the build couldn’t pull in the properties file.  Copying build.properties.template to build.properties fixes the build.  However, we aren’t done with the renaming.  I want to introduce the concept of build environments to my build.  That way, I can have different properties files for named environments.  I may want to set up different SDK builds, etc. as well, and environments will help me do that.  All I need to do is add a property to the top of the build.xml file to hold my environment name.  It looks like:
+<pre class="csharpcode"><span class="kwrd">&lt;</span><span class="html">property</span> <span class="attr">name</span><span class="kwrd">="env"</span> <span class="attr">value</span><span class="kwrd">="local"</span><span class="kwrd">/&gt;</span></pre>
+This means that, by default, I’ll be running in the local environment.  This also means that build.properties.template becomes local.properties.template.  Now, I have to copy local.properties.template to local.properties to get the build going.  Another change to the build.xml file is to the line that pulls in our properties file.  It changes from:
+<pre class="csharpcode"><span class="kwrd">&lt;</span><span class="html">property</span> <span class="attr">file</span><span class="kwrd">='build.properties'</span><span class="kwrd">/&gt;</span></pre>
+<pre class="csharpcode"><span class="kwrd">to</span></pre>
+<pre class="csharpcode"><span class="kwrd">&lt;</span><span class="html">property</span> <span class="attr">file</span><span class="kwrd">='${env}.properties'</span><span class="kwrd">/&gt;</span></pre>
+The cool thing is that I can add another file called (for example) 34SDK.properties that points to the Flex 3.4 SDK.  Then to run that build, I can write:
+
+ant build-all -Denv=34SDK
+
+and it will overwrite our env variable and look for a 34SDK.properties file.  Flexibility is fun.
+<h2>The SCMelephant in the Room</h2>
+Up to this point, I have committed a cardinal sin.  No source control.  I know, bad developer.   However, I want to get the directory structure set up in a more CI friendly manner before I involve an SCM, so there is a method to the madness.  Let’s do that now.  There are roughly 1, 233, 443 articles on a developer’s workspace or CI directory structure.  I am going to use one that I’ve borrowed (and slightly modified) from <a href="http://viswaug.wordpress.com/" target="_blank">Vish</a>.  He is smarter than me, so it must be the way to go.  Here is the structure, in pictures:
+
+<a href="http://ruprict.files.wordpress.com/2009/09/3479c0f09a281e0fc8655d29fcba313b.png"><img style="display:inline;border-width:0;" title="3479c0f09a281e0fc8655d29fcba313b" src="http://ruprict.files.wordpress.com/2009/09/3479c0f09a281e0fc8655d29fcba313b_thumb.png" border="0" alt="3479c0f09a281e0fc8655d29fcba313b" width="244" height="132" /></a>
+
+You can ignore the .metadata folder, as that is a Flex Builder thing and I won’t put it in source control.   The build folder will hold the output of our build, docs is self-explanatory, src is where our Flex Builder project lives, and tools holds stuff we need to run the build.  In this case, we need the FluintAirTestRunner.exe, which I’ll copy into my tools dir.  The build file lives in the root of our project space, which means it has moved up relative to the Flex Builder project.  We need to change some things in the build.properties file to get our build going again.
+<pre class="csharpcode" style="overflow:auto;">#Copy this file locally <span class="kwrd">to</span> local.properties <span class="kwrd">and</span> change below <span class="kwrd">for</span> your env
+
+# change this <span class="kwrd">to</span> your Flex SDK directory path
+FLEX_HOME=C:/Program Files (x86)/Adobe/Flex Builder 3/sdks/3.2.0
+
+# this points <span class="kwrd">to</span> your project<span class="rem">'s src directory</span>
+# {$basedir} <span class="kwrd">is</span> a <span class="kwrd">default</span> variable that can be used <span class="kwrd">in</span> any Antscript
+# <span class="kwrd">and</span> it points <span class="kwrd">to</span> the project<span class="rem">'s root folder [ flex_ant_pt1_Tasks ]</span>
+# <span class="kwrd">in</span> this <span class="kwrd">case</span>
+srcpath.dir =${basedir}/src/FlexAGSCI/src
+
+# points <span class="kwrd">to</span> the project<span class="rem">'s libs directory</span>
+libs.dir =${basedir}/src/FlexAGSCI/libs
+
+# this <span class="kwrd">is</span> the folder we want <span class="kwrd">to</span> publish the swf <span class="kwrd">to</span>
+deploypath.dir = ${basedir}/build
+
+wrapper.dir=${basedir}/src/FlexAGSCI/html-template
+
+version.major =0
+version.minor=9
+version.revision = 0
+APP_TITLE = Flex Solution
+APP_WIDTH = 100%
+APP_HEIGHT =100%
+locale = en_US
+html.file=${deploypath.dir}/index.html
+application.name=FlexAGSCI
+
+#Fluint vars
+fluint.dir = ${basedir}/tools/FluintAIRTestRunner
+report.dir = ${deploypath.dir}/reports</pre>
+Now, running ‘ant’ at the project space root builds the project, and running ant test builds the test module and runs the test.  We copy this file to local.properties.template, and we are ready to import this project into source control.
+
+I found a couple of posts that show how to import an existing directory into Subversion and make that directory your working copy, which is snazzy. It’s all <a href="http://www.kleinfelter.com/svn-import-with-ignore" target="_blank">here</a>.  If you know anything about svn, that is a pretty straightforward post.
+
+That’s that.  We are now ready for Hudson.  in the next post, we’ll get Hudson up, running, building our stuff, and running our test.

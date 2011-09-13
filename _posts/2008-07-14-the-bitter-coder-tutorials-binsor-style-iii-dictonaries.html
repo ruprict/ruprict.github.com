@@ -1,0 +1,85 @@
+--- 
+layout: post
+title: "The Bitter Coder Tutorials, Binsor Style III: Dictonaries"
+tags: 
+- Binsor
+- WCF
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1216058374"
+---
+<div class="zemanta-img" style="float:right;display:block;margin:1em;"><a href="http://en.wikipedia.org/wiki/Image:Dictionary_Icon.png"><img style="border:medium none;display:block;" src="http://upload.wikimedia.org/wikipedia/en/thumb/d/d1/Dictionary_Icon.png/202px-Dictionary_Icon.png" alt="Dictionary" /></a><span class="zemanta-img-attribution">Image via <a href="http://en.wikipedia.org/wiki/Image:Dictionary_Icon.png">Wikipedia</a></span></div>
+Time for Part III in the Binsorization of the Bitter Coder tutorials.  The original tutorial is <a href="http://blog.bittercoder.com/PermaLink,guid,01697ea5-3175-455b-8e7c-b81436e67235.aspx" target="_blank">here</a>.
+
+The original tutorial created a class to handle word substitution, which looked a lot like:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red91\green105\blue106;\red26\green24\blue21;\red222\green222\blue203;\red121\green151\blue84;\red150\green120\blue120;\red199\green199\blue165;}??\fs30 \cf1\cb2\highlight2 public\cf3  \cf1 class\cf3  \cf4 AliasService\par ??\cf3     \{\par ??        \cf1 private\cf3  \cf4 Dictionary\cf5 &lt;\cf1 string\cf3 , \cf1 string\cf5 &gt;\cf3  \cf6 _aliases\cf3 ;\par ??\par ??        \cf1 public\cf3  \cf4 Dictionary\cf5 &lt;\cf1 string\cf3 , \cf1 string\cf5 &gt;\cf3  \cf6 Aliases\par ??\cf3         \{\par ??            \cf1 get\cf3  \{ \cf1 return\cf3  \cf6 _aliases\cf3 ; \}\par ??            \cf1 set\cf3  \{ \cf6 _aliases\cf3  \cf5 =\cf3  \cf1 value\cf3 ; \}\par ??        \}\par ??\par ??        \cf1 public\cf3  \cf1 string\cf3  \cf6 Evaluate\cf3 (\cf1 string\cf3  \cf6 term\cf3 )\par ??        \{\par ??            \cf1 if\cf3  (\cf6 _aliases\cf3  \cf5 ==\cf3  \cf1 null\cf3 ) \cf1 return\cf3  \cf6 term\cf3 ;\par ??            \cf1 while\cf3  (\cf6 _aliases\cf5 .\cf6 ContainsKey\cf3 (\cf6 term\cf3 ))\par ??            \{\par ??                \cf6 term\cf3  \cf5 =\cf3  \cf6 _aliases\cf3 [\cf6 term\cf3 ];\par ??            \}\par ??            \cf1 return\cf3  \cf6 term\cf3 ;\par ??\par ??        \}\par ??    \}} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;"><span style="color:#5b696a;">public</span> <span style="color:#5b696a;">class</span> <span style="color:#799754;">AliasService</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">private</span> <span style="color:#799754;">Dictionary</span><span style="color:#967878;">&lt;</span><span style="color:#5b696a;">string</span>, <span style="color:#5b696a;">string</span><span style="color:#967878;">&gt;</span> <span style="color:#c7c7a5;">_aliases</span>;</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">public</span> <span style="color:#799754;">Dictionary</span><span style="color:#967878;">&lt;</span><span style="color:#5b696a;">string</span>, <span style="color:#5b696a;">string</span><span style="color:#967878;">&gt;</span> <span style="color:#c7c7a5;">Aliases</span></p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#5b696a;">get</span> { <span style="color:#5b696a;">return</span> <span style="color:#c7c7a5;">_aliases</span>; }</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#5b696a;">set</span> { <span style="color:#c7c7a5;">_aliases</span> <span style="color:#967878;">=</span> <span style="color:#5b696a;">value</span>; }</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">public</span> <span style="color:#5b696a;">string</span> <span style="color:#c7c7a5;">Evaluate</span>(<span style="color:#5b696a;">string</span> <span style="color:#c7c7a5;">term</span>)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#5b696a;">if</span> (<span style="color:#c7c7a5;">_aliases</span> <span style="color:#967878;">==</span> <span style="color:#5b696a;">null</span>) <span style="color:#5b696a;">return</span> <span style="color:#c7c7a5;">term</span>;</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#5b696a;">while</span> (<span style="color:#c7c7a5;">_aliases</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">ContainsKey</span>(<span style="color:#c7c7a5;">term</span>))</p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#c7c7a5;">term</span> <span style="color:#967878;">=</span> <span style="color:#c7c7a5;">_aliases</span>[<span style="color:#c7c7a5;">term</span>];</p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#5b696a;">return</span> <span style="color:#c7c7a5;">term</span>;</p>
+<p style="padding-left:60px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+And the application code:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red91\green105\blue106;\red26\green24\blue21;\red222\green222\blue203;\red199\green199\blue165;\red121\green151\blue84;\red150\green120\blue120;\red140\green112\blue80;\red190\green195\blue125;}??\fs30 \cf1\cb2\highlight2 private\cf3  \cf1 static\cf3  \cf1 void\cf3  \cf4 Step3\cf3 ()\par ??        \{\par ??            \cf5 AliasService\cf3  \cf4 aliasService\cf3  \cf6 =\cf3  \cf4 container\cf6 .\cf4 Resolve\cf6 &lt;\cf5 AliasService\cf6 &gt;\cf3 ();\par ??            \cf1 string\cf3  \cf4 sentence\cf3  \cf6 =\cf3  \cf7 {\b "a dog ate my homework"}\cf3 ;\par ??            \cf1 foreach\cf3  (\cf1 string\cf3  \cf4 word\cf3  \cf1 in\cf3  \cf4 sentence\cf6 .\cf4 Split\cf3 (\cf1 new\cf3  \cf1 char\cf3 [] \{ \cf7 {\b ' '}\cf3  \}, \cf8 StringSplitOptions\cf6 .\cf4 RemoveEmptyEntries\cf3 ))\par ??            \{\par ??                \cf5 Console\cf6 .\cf4 Write\cf3 (\cf7 {\b "\{0\} "}\cf3 , \cf4 aliasService\cf6 .\cf4 Evaluate\cf3 (\cf4 word\cf3 ));\par ??            \}\par ??        \}} -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;"><span style="color:#5b696a;">static</span> <span style="color:#5b696a;">void</span> Main(string[] args)</p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#799754;">AliasService</span> <span style="color:#c7c7a5;">aliasService</span> <span style="color:#967878;">=</span> <span style="color:#c7c7a5;">container</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Resolve</span><span style="color:#967878;">&lt;</span><span style="color:#799754;">AliasService</span><span style="color:#967878;">&gt;</span>();</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">string</span> <span style="color:#c7c7a5;">sentence</span> <span style="color:#967878;">=</span> <span style="font-weight:bold;color:#8c7050;">"a dog ate my homework"</span>;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">foreach</span> (<span style="color:#5b696a;">string</span> <span style="color:#c7c7a5;">word</span> <span style="color:#5b696a;">in</span> <span style="color:#c7c7a5;">sentence</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Split</span>(<span style="color:#5b696a;">new</span> <span style="color:#5b696a;">char</span>[] { <span style="font-weight:bold;color:#8c7050;">' '</span> }, <span style="color:#bec37d;">StringSplitOptions</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">RemoveEmptyEntries</span>))</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#799754;">Console</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Write</span>(<span style="font-weight:bold;color:#8c7050;">"{0} "</span>, <span style="color:#c7c7a5;">aliasService</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Evaluate</span>(<span style="color:#c7c7a5;">word</span>));</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+Now the Binsor:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Envy Code R VS;}}{\colortbl;??\red222\green222\blue203;\red26\green24\blue21;}??\fs30 \cf1\cb2\highlight2 import System\par ??import System.Reflection\par ??import System.Collections.Generic\par ??import BitterCoder.Tutorials.Binsor.Core\par ??\par ??component "step.handler", StepHandler:\par ??\tab StepNumber=3\par ??\par ??component "tax.calculator", TaxCalculator:\par ??\tab Rate=Convert.ToDecimal(0.25)\par ??\tab \par ??component "holiday.service", HolidayService:\par ??\tab Holidays=(\par ??\tab \tab DateTime(2007,12,24),\par ??\tab \tab DateTime(2007,12,25),\par ??\tab \tab DateTime(2008,1,1)\par ??\tab )\par ??\tab \par ??aliases=Dictionary [of string, string]()\par ??aliases['dog']="duck"\par ??aliases['ate']="broke"\par ??aliases['homework']="code"\par ??component "aliases.service", AliasService:\par ??\tab Aliases=aliases\par ??\tab } -->
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;">import System</p>
+<p style="margin:0;">import System.Reflection</p>
+<p style="margin:0;">import System.Collections.Generic</p>
+<p style="margin:0;">import BitterCoder.Tutorials.Binsor.Core</p>
+<p style="margin:0;"></p>
+<p style="margin:0;"></p>
+<p style="margin:0;">aliases=Dictionary [of string, string]()</p>
+<p style="margin:0;">aliases['dog']="duck"</p>
+<p style="margin:0;">aliases['ate']="broke"</p>
+<p style="margin:0;">aliases['homework']="code"</p>
+<p style="margin:0;">component "aliases.service", AliasService:</p>
+<p style="padding-left:30px;margin:0;">Aliases=aliases</p>
+
+</div>
+So, we have a bit of strange syntax to get a generic Dictionary, but then it becomes very natural to create the entries.  Also, we don't have to worry about the type converters that Alex mentions in his tutorial.
+
+Running the code gives us:
+
+<strong>a duck broke my code</strong>
+
+All good.  Up next is Switching Configurations...
+<div class="zemanta-pixie" style="margin-top:10px;height:15px;"><a class="zemanta-pixie-a" title="Zemified by Zemanta" href="http://reblog.zemanta.com/zemified/7c795af1-02f6-46b8-b10f-9fc37c58671e/"><img class="zemanta-pixie-img" style="border:medium none;float:right;" src="http://img.zemanta.com/reblog_e.png?x-id=7c795af1-02f6-46b8-b10f-9fc37c58671e" alt="Zemanta Pixie" /></a></div>

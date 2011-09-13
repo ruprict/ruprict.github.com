@@ -1,0 +1,34 @@
+--- 
+layout: post
+title: Forced to FLEX
+tags: 
+- ArcDeveloper
+- Flex
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1231709001"
+  _edit_last: "3307217"
+---
+I am on a project where we are delivering a web-based mapping application to the client.  The application has gone through every UI scenario you can imagine: <a class="zem_slink" title="Microsoft Virtual Earth" rel="homepage" href="http://www.microsoft.com/virtualearth/">Virtual Earth</a> in Sharepoint to <a class="zem_slink" title="ArcGIS Server" rel="wikipedia" href="http://en.wikipedia.org/wiki/ArcGIS_Server">ArcGIS Server</a> Web ADF to ArcGIS Server <a class="zem_slink" title="JavaScript" rel="wikipedia" href="http://en.wikipedia.org/wiki/JavaScript">Javascript</a> API to (presently) ArcGIS Server Flex API.  The Flex decision was made against my recommendations.  I don't have a lot of ammo against Flex, but I was born and raised in JavascriptTown, HTMLandia.  I have read some HTML/JS vs Flex posts and seen all kinds of opinions, and my research has led me to the one true answer to this debate:  It depends.
+
+As with many technical decisions you meet when creating applications for the web, you need to let your context by your driver.  Trust me, I wanted to take HTML Hill and dig in for the victory-or-death battle, but the client liked a couple of Flex sites.   I mean really liked them.  So, rather than just fight the "but that doesn't look like Flash" battle constantly (even though I think we could win...let it go...let it go...) we are using Flex.
+
+So, I am a lot like my kids eating their spinach.  They get why they have to do it, but they do it begrudgingly and with a nasty look on their faces.   And, much like the vegetable-hating youngsters, I am reaping some benefits:
+<ul>
+	<li><strong>Knowledge is Power.</strong> Learning a new language is always a good thing.  One of my favorite books, <a class="zem_slink" title="The Pragmatic Programmer" rel="homepage" href="http://www.pragprog.com/">The Pragmatic Programmer</a>, encourages developers to learn a new language each year.</li>
+	<li><strong>Flex is a good language.</strong> Flex has been refreshingly enjoyable to write.  While I still prefer my HTML with a massive heaping of Javascript sauce, Flex (and <a class="zem_slink" title="ActionScript" rel="wikipedia" href="http://en.wikipedia.org/wiki/ActionScript">ActionScript</a>) is a great language (and a <a class="zem_slink" title="ECMAScript" rel="homepage" href="http://www.ecma-international.org/publications/standards/Ecma-262.htm">ECMAScript</a> standard, like my beloved javascript).</li>
+	<li><strong>Somes things are easier. </strong>Some stuff is easier in Flex/Flash.  The best example is probably cross-domain URL access.  If you want to allow a Flash object to access a URL, you put an XML file (crossdomain.xml) in the root of that site.  You can allow access to anyone, or domains, or all kinds of options.  Having struggled mightly with AJAX/REST scenarios involving the same-origin policy, this was really, really great.  Also, the UI is just easier to create.  Sexy, translucent panels and easy drag/drop capabilities come to mind.</li>
+	<li><strong>Flex tries</strong>.  Flex does it's best to use some web paradigms, like <a class="zem_slink" title="Cascading Style Sheets" rel="wikipedia" href="http://en.wikipedia.org/wiki/Cascading_Style_Sheets">CSS</a> stylesheets.  Many of the style properties are specific to Flex, and I don't profess to understand even half of them, but it made me feel a bit more comfortable.</li>
+</ul>
+Now, from the "I told you so" vault, some of the cons:
+<ul>
+	<li><strong>Accessibility (duh)</strong>.  If we want this web application to be usable on multiple devices (iPhone, screen reader, etc) then we are gonna have to write a totally different interface.  I understand that even in HTML land there is some of that, but it's easier and allows for more UI code reuse.</li>
+	<li><strong>Unit testing</strong>.  While there are a good number of Flex unit testing frameworks (FlexUnit, ASUnit, Fluint, FlexMonkey, and even RIATest (commercial)) they are all difficult to use in my opinion.  Now, part of this reason is because the map is a custom component and is not friendly with the Flex Automation Framework out-of-the-box.  We have struggled finding a unit testing framework that we like, but I think we're about to settle on <a href="http://code.google.com/p/fluint/" target="_blank">Fluint</a>.</li>
+	<li><strong>Continuous Integration</strong>.  After unit testing, the next step is continuous integration, and I have no answer for this one yet.  Yes, I know there are things out there like Hudson, Maven, flex-maven, as well as a series of posts on CI with Flex using <a class="zem_slink" title="CruiseControl" rel="homepage" href="http://cruisecontrol.sourceforge.net">CruiseControl</a>.  I think my main issue here is my .NET bubble.  We have other services and applications under development for this client, all of which are .NET based.  We have CruiseControl.NET for these .NET based items (thanks <a href="http://www.cifactory.org/" target="_blank">CIFactory</a>!) so I have spent much of my time trying to figure out how to integrate our Flex app into that CI setup.  I think this is the wrong approach and we'll ultimately have to create a separate Flex only CI server.</li>
+</ul>
+The best part apart this project has been actually working with a team of developers again.  My projects before this one were cowboy-ish in nature, so I was doing all the nerd stuff.  We have some crazy-smart people where we work, and it's fun to tackle this new stuff with them.
+
+While I still pine for my HTML/javascript/CSS/C#, writng the Flex stuff has been (and should continue to be)  a learning experience.  Speaking of learning, if anyone reading this has suggestions or approaches to unit testing or CI or anything else to a new bunch of Flex devs, please comment away.
+<div class="zemanta-pixie" style="margin-top:10px;height:15px;"><a class="zemanta-pixie-a" title="Zemified by Zemanta" href="http://reblog.zemanta.com/zemified/965d92f9-fa26-4419-a2d2-64aeb8aa14a5/"><img class="zemanta-pixie-img" style="border:medium none;float:right;" src="http://img.zemanta.com/reblog_e.png?x-id=965d92f9-fa26-4419-a2d2-64aeb8aa14a5" alt="Reblog this post [with Zemanta]" /></a></div>

@@ -1,0 +1,96 @@
+--- 
+layout: post
+title: The Bitter Coder Tutorials, Binsor Style, Arrays
+tags: 
+- Binsor
+- Castle
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_lock: "1215867429"
+  _edit_last: "3307217"
+---
+In the last post, I started doing the Bitter Coder tutorials, but using Binsor for the configuration.  This is the second in the series, and focuses on configuring arrays...the original is <a href="http://blog.bittercoder.com/PermaLink,guid,3233bd70-4885-4292-8aac-c94bf9910401.aspx" target="_blank">here</a>.
+
+So, our HolidayService tells us when we can go to the beach, yes?
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;"><span style="color:#5b696a;">namespace</span> <span style="color:#c7c7a5;">BitterCoder</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Tutorials</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Binsor</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Core</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">public</span> <span style="color:#5b696a;">class</span> <span style="color:#799754;">HolidayService</span></p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#5b696a;">private</span> <span style="color:#a65c5c;">DateTime</span>[] <span style="color:#c7c7a5;">_holidays</span>;</p>
+<p style="padding-left:60px;margin:0;"></p>
+<p style="padding-left:60px;margin:0;"><span style="color:#5b696a;">public</span> <span style="color:#a65c5c;">DateTime</span>[] <span style="color:#c7c7a5;">Holidays</span></p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#5b696a;">get</span> { <span style="color:#5b696a;">return</span> <span style="color:#c7c7a5;">_holidays</span>; }</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#5b696a;">set</span> { <span style="color:#c7c7a5;">_holidays</span> <span style="color:#967878;">=</span> <span style="color:#5b696a;">value</span>; }</p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:60px;margin:0;"></p>
+<p style="padding-left:60px;margin:0;"><span style="color:#5b696a;">public</span> <span style="color:#5b696a;">bool</span> <span style="color:#c7c7a5;">IsHoliday</span>(<span style="color:#a65c5c;">DateTime</span> <span style="color:#c7c7a5;">date</span>)</p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#5b696a;">if</span> (<span style="color:#c7c7a5;">_holidays</span> <span style="color:#967878;">!=</span> <span style="color:#5b696a;">null</span>)</p>
+<p style="padding-left:90px;margin:0;">{</p>
+<p style="padding-left:120px;margin:0;"><span style="color:#a65c5c;">DateTime</span> <span style="color:#c7c7a5;">matchDate</span> <span style="color:#967878;">=</span> <span style="color:#c7c7a5;">date</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Date</span>;</p>
+<p style="padding-left:120px;margin:0;"><span style="color:#5b696a;">foreach</span> (<span style="color:#a65c5c;">DateTime</span> <span style="color:#c7c7a5;">test</span> <span style="color:#5b696a;">in</span> <span style="color:#c7c7a5;">Holidays</span>)</p>
+<p style="padding-left:120px;margin:0;">{</p>
+<p style="padding-left:150px;margin:0;"><span style="color:#5b696a;">if</span> (<span style="color:#c7c7a5;">test</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Date</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Equals</span>(<span style="color:#c7c7a5;">matchDate</span>))</p>
+<p style="padding-left:150px;margin:0;">{</p>
+<p style="padding-left:150px;margin:0;"><span style="color:#5b696a;">return</span> <span style="color:#5b696a;">true</span>;</p>
+<p style="padding-left:150px;margin:0;">}</p>
+<p style="padding-left:120px;margin:0;">}</p>
+<p style="padding-left:90px;margin:0;">}</p>
+<p style="padding-left:90px;margin:0;"><span style="color:#5b696a;">return</span> <span style="color:#5b696a;">false</span>;</p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+And the code to run this service:
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;"><span style="color:#5b696a;">static</span> <span style="color:#5b696a;">void</span> Main(string[] args)</p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#799754;">HolidayService</span> <span style="color:#c7c7a5;">holidayService</span> <span style="color:#967878;">=</span> <span style="color:#c7c7a5;">container</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Resolve</span><span style="color:#967878;">&lt;</span><span style="color:#799754;">HolidayService</span><span style="color:#967878;">&gt;</span>();</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#a65c5c;">DateTime</span> <span style="color:#c7c7a5;">xmas</span> <span style="color:#967878;">=</span> <span style="color:#5b696a;">new</span> <span style="color:#a65c5c;">DateTime</span>(<span style="color:#8c7050;">2007</span>, <span style="color:#8c7050;">12</span>, <span style="color:#8c7050;">25</span>);</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#a65c5c;">DateTime</span> <span style="color:#c7c7a5;">newYears</span> <span style="color:#967878;">=</span> <span style="color:#5b696a;">new</span> <span style="color:#a65c5c;">DateTime</span>(<span style="color:#8c7050;">2008</span>, <span style="color:#8c7050;">1</span>, <span style="color:#8c7050;">1</span>);</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">if</span> (<span style="color:#c7c7a5;">holidayService</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">IsHoliday</span>(<span style="color:#c7c7a5;">xmas</span>))</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#799754;">Console</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">WriteLine</span>(<span style="color:#8c7050;">"merry xmas!"</span>);</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">else</span></p>
+<p style="padding-left:60px;margin:0;"><span style="color:#799754;">Console</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">WriteLine</span>(<span style="color:#8c7050;">"xmas is only for management!"</span>);</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">if</span> (<span style="color:#c7c7a5;">holidayService</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">IsHoliday</span>(<span style="color:#c7c7a5;">newYears</span>))</p>
+<p style="padding-left:60px;margin:0;"><span style="color:#799754;">Console</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">WriteLine</span>(<span style="color:#8c7050;">"happy new year"</span>);</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#5b696a;">else</span></p>
+<p style="padding-left:60px;margin:0;"><span style="color:#799754;">Console</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">WriteLine</span>(<span style="color:#8c7050;">"new year, you haven't done all the work for last year!"</span>);</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#799754;">Console</span><span style="color:#967878;">.</span><span style="color:#c7c7a5;">Read</span>();</p>
+<p style="margin:0;"></p>
+<p style="margin:0;">}</p>
+
+</div>
+And the config:
+<div style="background:#1a1815 none repeat scroll 0 0;font-family:Envy Code R VS;font-size:8pt;color:#dedecb;">
+<p style="margin:0;">component "holiday.service", HolidayService:</p>
+<p style="padding-left:30px;margin:0;">Holidays=(</p>
+<p style="padding-left:60px;margin:0;">DateTime(2007,12,24),</p>
+<p style="padding-left:60px;margin:0;">DateTime(2007,12,25),</p>
+<p style="padding-left:60px;margin:0;">DateTime(2008,1,1)</p>
+<p style="padding-left:30px;margin:0;">)</p>
+
+</div>
+The array syntax in Binsor is the objects surrounding by parentheses.  If you has a list (or a List&lt;DateTime&gt;) you would have to use brackets ([ ]).  Also, we can new-up our dates here, minus the "new" keyword.  One more thing I'd like to mention, is I am constantly getting bit by not putting the colon (:) at the end of the component line, which you ONLY do if you are adding parameters.
+
+BTW, if you take away the Holiday parameter (and the trailing : on the component line) you'll get the default behavior, which shows up in the console as:
+
+<strong>xmas is only for management!
+new year, you haven't done all the work for last year!</strong>
+
+With the Holiday parameter (and the trailing : ) in the windsor.boo file, you get:
+
+merry xmas!
+happy new year
+
+And we're done with tutorial #2.
+
+Next, we take a look at dictionaries...

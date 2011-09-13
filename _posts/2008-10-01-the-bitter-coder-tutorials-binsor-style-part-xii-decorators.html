@@ -1,0 +1,240 @@
+--- 
+layout: post
+title: "The Bitter Coder Tutorials, Binsor Style: Part XII, Decorators"
+tags: 
+- Binsor
+- Castle
+- Windsor
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1222802814"
+---
+<div class="zemanta-img zemanta-action-click" style="float:right;display:block;margin:1em;"><a href="http://en.wikipedia.org/wiki/Image:Decorator_Pattern_ZP.svg"><img style="border:medium none;display:block;" src="http://upload.wikimedia.org/wikipedia/en/thumb/e/e9/Decorator_Pattern_ZP.svg/202px-Decorator_Pattern_ZP.svg.png" alt="UML Class diagram of the decorator pattern" /></a>
+<p class="zemanta-img-attribution">Image via <a href="http://en.wikipedia.org/wiki/Image:Decorator_Pattern_ZP.svg">Wikipedia</a></p>
+
+</div>
+Previous posts in the series:
+<ul>
+	<li><a href="https://ruprict.wordpress.com/2008/07/11/the-bitter-coder-tutorials-binsor-style/" target="_blank">Part 1</a></li>
+	<li><a href="https://ruprict.wordpress.com/2008/07/12/the-bitter-coder-tutorials-binsor-style-arrays/" target="_blank">Part 2</a></li>
+	<li><a href="https://ruprict.wordpress.com/2008/07/14/the-bitter-coder-tutorials-binsor-style-iii-dictonaries/" target="_blank">Part 3</a></li>
+	<li><a href="https://ruprict.wordpress.com/2008/07/16/the-bitter-coder-tutorials-binsor-style-iv-switching-configs/" target="_blank">Part 4</a></li>
+	<li><a href="https://ruprict.wordpress.com/2008/07/28/the-bitter-coder-tutorial-binsor-style-v-configuration-parameters/" target="_blank">Part 5</a></li>
+	<li><a href="https://ruprict.wordpress.com/2008/08/04/the-bitter-coder-tutorials-binsor-style-vi-switching-lifestyles/" target="_blank">Part 6</a></li>
+	<li><a href="https://ruprict.wordpress.com/2008/08/11/the-bitter-coder-tutorials-binsor-style-vii-switching-implementations/" target="_blank">Part 7</a></li>
+	<li><a href="https://ruprict.wordpress.com/2008/08/18/the-bitter-coder-tutorials-viii-referencing-instances-by-key/" target="_blank">Part 8</a></li>
+	<li><a href="https://ruprict.wordpress.com/?p=58" target="_blank">Part 9</a></li>
+	<li><a href="https://ruprict.wordpress.com/2008/09/02/the-bitter-coder-tutorials-binsor-style-part-x-setter-injection/" target="_self">Part 10</a></li>
+	<li><a href="https://ruprict.wordpress.com/?p=66" target="_blank">Part 11</a></li>
+</ul>
+Today's post focuses on Decorators.  The <a class="zem_slink" title="Decorator pattern" rel="wikipedia" href="http://en.wikipedia.org/wiki/Decorator_pattern">Decorator Pattern</a> is a well-known <a class="zem_slink" title="Design pattern (computer science)" rel="wikipedia" href="http://en.wikipedia.org/wiki/Design_pattern_%28computer_science%29">design pattern</a> where functionality is added to a class by wrapping it with another class.  Like an onion, sorta.  Anyway, copying <a href="http://blog.bittercoder.com/PermaLink,guid,4863e460-2985-475c-9266-80b4895e80de.aspx" target="_blank">Alex</a>, we are going to use this pattern with Windsor to chain implementations together.
+
+Here is our Order and OrderItem classes:
+<div><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;\red0\green0\blue255;\red43\green145\blue175;}??\fs20     \cf3 public\cf0  \cf3 class\cf0  \cf4 Order\par ??\cf0     \{\par ??        \cf3 private\cf0  \cf3 readonly\cf0  \cf4 List\cf0 &lt;\cf4 OrderItem\cf0 &gt; _items = \cf3 new\cf0  \cf4 List\cf0 &lt;\cf4 OrderItem\cf0 &gt;();\par ??        \cf3 public\cf0  \cf4 List\cf0 &lt;\cf4 OrderItem\cf0 &gt; Items\par ??        \{\par ??            \cf3 get\cf0  \{ \cf3 return\cf0  _items; \}\par ??        \}\par ??        \cf3 public\cf0  \cf3 string\cf0  CountryCode \{ \cf3 get\cf0 ; \cf3 set\cf0 ; \}\par ??    \}\par ??\par ??    \cf3 public\cf0  \cf3 class\cf0  \cf4 OrderItem\par ??\cf0     \{\par ??        \cf3 public\cf0  OrderItem(\cf3 string\cf0  name, \cf3 int\cf0  quantity, \cf3 decimal\cf0  costPerItem, \cf3 bool\cf0  isFragile)\par ??        \{\par ??            Name = name;\par ??            Quantity = quantity;\par ??            CostPerItem = costPerItem;\par ??            IsFragile = isFragile;\par ??        \}\par ??        \cf3 public\cf0  \cf3 bool\cf0  IsFragile \{ \cf3 get\cf0 ; \cf3 set\cf0 ; \}\par ??        \cf3 public\cf0  \cf3 int\cf0  Quantity \{ \cf3 get\cf0 ; \cf3 set\cf0 ; \}\par ??        \cf3 public\cf0  \cf3 decimal\cf0  CostPerItem \{ \cf3 get\cf0 ; \cf3 set\cf0 ; \}\par ??        \cf3 public\cf0  \cf3 string\cf0  Name \{ \cf3 get\cf0 ; \cf3 set\cf0 ; \}\par ??    \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">Order</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">readonly</span> <span style="color:#2b91af;">List</span>&lt;<span style="color:#2b91af;">OrderItem</span>&gt; _items = <span style="color:blue;">new</span> <span style="color:#2b91af;">List</span>&lt;<span style="color:#2b91af;">OrderItem</span>&gt;();</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:#2b91af;">List</span>&lt;<span style="color:#2b91af;">OrderItem</span>&gt; Items</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">get</span> { <span style="color:blue;">return</span> _items; }</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">string</span> CountryCode { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</p>
+<p style="margin:0;">}</p>
+<p style="margin:0;"></p>
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">OrderItem</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> OrderItem(<span style="color:blue;">string</span> name, <span style="color:blue;">int</span> quantity, <span style="color:blue;">decimal</span> costPerItem, <span style="color:blue;">bool</span> isFragile)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;">Name = name;</p>
+<p style="padding-left:60px;margin:0;">Quantity = quantity;</p>
+<p style="padding-left:60px;margin:0;">CostPerItem = costPerItem;</p>
+<p style="padding-left:60px;margin:0;">IsFragile = isFragile;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">bool</span> IsFragile { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">int</span> Quantity { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">decimal</span> CostPerItem { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">string</span> Name { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</p>
+<p style="margin:0;">}</p>
+
+</div>
+</div>
+And an interface to calculate the cost of an order:
+<div><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;\red0\green0\blue255;\red43\green145\blue175;}??\fs20     \cf3 public\cf0  \cf3 interface\cf0  \cf4 ICostCalculator\par ??\cf0     \{\par ??        \cf3 decimal\cf0  CalculateTotal(\cf4 Order\cf0  order);\par ??    \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">interface</span> <span style="color:#2b91af;">ICostCalculator</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">decimal</span> CalculateTotal(<span style="color:#2b91af;">Order</span> order);</p>
+<p style="margin:0;">}</p>
+
+</div>
+</div>
+Our default cost calculator (Side note: I like LINQ):
+<div><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue0;\red255\green255\blue255;\red0\green0\blue255;\red43\green145\blue175;}??\fs20     \cf3 public\cf0  \cf3 class\cf0  \cf4 DefaultCostCalculator\cf0 :\cf4 ICostCalculator\par ??\cf0     \{\par ??        \cf3 public\cf0  \cf3 decimal\cf0  CalculateTotal(\cf4 Order\cf0  order)\par ??        \{\par ??            \cf3 return\cf0  order.Items.Sum(ord =&gt; ord.CostPerItem*ord.Quantity);\par ??        \}\par ??    \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">DefaultCostCalculator</span>:<span style="color:#2b91af;">ICostCalculator</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">decimal</span> CalculateTotal(<span style="color:#2b91af;">Order</span> order)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">return</span> order.Items.Sum(ord =&gt; ord.CostPerItem*ord.Quantity);</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+</div>
+Our Binsor for the DefaultCostCalculator:
+<pre style="overflow:auto;border:thin solid #FFF;font-size:x-small;">component "default.calculator", ICostCalculator,DefaultCostCalculator</pre>
+Now, the program itself:
+<div><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 private\cf0  \cf1 static\cf0  \cf1 void\cf0  Main(\cf1 string\cf0 [] args)\par ??        \{\par ??            container = \cf1 new\cf0  \cf4 WindsorContainer\cf0 ().Install(\cf4 BinsorScript\cf0 .FromFile(\cf5 "windsor.boo"\cf0 ));\par ??            \cf1 var\cf0  handler = container.Resolve&lt;\cf4 StepHandler\cf0 &gt;();\par ??            \cf1 string\cf0  method = \cf5 "Step"\cf0  + handler.StepNumber;\par ??\par ??            \cf4 Type\cf0  type = \cf1 typeof\cf0  (\cf4 Program\cf0 );\par ??            type.InvokeMember(method, \cf4 BindingFlags\cf0 .Default | \cf4 BindingFlags\cf0 .InvokeMethod, \cf1 null\cf0 , \cf1 null\cf0 , \cf1 new\cf0  \cf1 object\cf0 [] \{\});\par ??\par ??            \cf4 Console\cf0 .Read();\par ??        \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;"><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 static\cf0  \cf1 void\cf0  Step12()\par ??        \{\par ??            \cf1 var\cf0  order1 = \cf1 new\cf0  \cf4 Order\par ??\cf0                              \{\par ??                                 CountryCode = \cf5 "NZ"\cf0 ,\par ??                                 Items =\par ??                                     \{\par ??                                         \cf1 new\cf0  \cf4 OrderItem\cf0 (\cf5 "water"\cf0 , 10, 1.0m, \cf1 false\cf0 ),\par ??                                         \cf1 new\cf0  \cf4 OrderItem\cf0 (\cf5 "glass"\cf0 , 5, 20.0m, \cf1 true\cf0 )\par ??                                     \}\par ??                             \};\par ??            \cf1 var\cf0  order2 = \cf1 new\cf0  \cf4 Order\par ??\cf0                              \{\par ??                                 CountryCode = \cf5 "US"\cf0 ,\par ??                                 Items =\par ??                                     \{\par ??                                         \cf1 new\cf0  \cf4 OrderItem\cf0 (\cf5 "sand"\cf0 , 50, 0.2m, \cf1 false\cf0 )\par ??                                     \}\par ??                             \};\par ??            \cf1 var\cf0  _calc = container.Resolve&lt;\cf4 ICostCalculator\cf0 &gt;();\par ??            \cf4 Console\cf0 .WriteLine(\cf5 "Cost to deliver Order 1: \{0\}"\cf0 , _calc.CalculateTotal(order1));\par ??            \cf4 Console\cf0 .WriteLine(\cf5 "Cost to deliver Order 2: \{0\}"\cf0 , _calc.CalculateTotal(order2));\par ??\par ??        \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">static</span> <span style="color:blue;">void</span> Main(string[] args)</p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">var</span> order1 = <span style="color:blue;">new</span> <span style="color:#2b91af;">Order</span></p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;">CountryCode = <span style="color:#a31515;">"NZ"</span>,</p>
+<p style="padding-left:60px;margin:0;">Items =</p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;"><span style="color:blue;">new</span> <span style="color:#2b91af;">OrderItem</span>(<span style="color:#a31515;">"water"</span>, 10, 1.0m, <span style="color:blue;">false</span>),</p>
+<p style="padding-left:90px;margin:0;"><span style="color:blue;">new</span> <span style="color:#2b91af;">OrderItem</span>(<span style="color:#a31515;">"glass"</span>, 5, 20.0m, <span style="color:blue;">true</span>)</p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;">};</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">var</span> order2 = <span style="color:blue;">new</span> <span style="color:#2b91af;">Order</span></p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;">CountryCode = <span style="color:#a31515;">"US"</span>,</p>
+<p style="padding-left:60px;margin:0;">Items =</p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;"><span style="color:blue;">new</span> <span style="color:#2b91af;">OrderItem</span>(<span style="color:#a31515;">"sand"</span>, 50, 0.2m, <span style="color:blue;">false</span>)</p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;">};</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">var</span> _calc = container.Resolve&lt;<span style="color:#2b91af;">ICostCalculator</span>&gt;();</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"Cost to deliver Order 1: {0}"</span>, _calc.CalculateTotal(order1));</p>
+<p style="padding-left:30px;margin:0;"><span style="color:#2b91af;">Console</span>.WriteLine(<span style="color:#a31515;">"Cost to deliver Order 2: {0}"</span>, _calc.CalculateTotal(order2));</p>
+<p style="margin:0;"></p>
+<p style="margin:0;">}</p>
+
+</div>
+</div>
+</div>
+Running the program, gives us:
+<div><strong>Cost to deliver Order 1: 110.0
+Cost to deliver Order 2: 10.0</strong></div>
+Now, let's go to New Zealand where we have to pay the Goods and Services Tax.  Here is our cost calculator for that:
+<div><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;\red163\green21\blue21;}??\fs20 \cf1 public\cf0  \cf1 class\cf0  \cf4 GstCostCalcualtorDecoarator\cf0  : \cf4 ICostCalculator\par ??\cf0     \{\par ??        \cf1 private\cf0  \cf1 readonly\cf0  \cf4 ICostCalculator\cf0  _innerCalculator;\par ??        \cf1 private\cf0  \cf1 decimal\cf0  _gstRate = 1.125m;\par ??\par ??        \cf1 public\cf0  GstCostCalcualtorDecoarator(\cf4 ICostCalculator\cf0  innerCalculator)\par ??        \{\par ??            _innerCalculator = innerCalculator;\par ??        \}\par ??        \cf1 public\cf0  \cf1 decimal\cf0  GstRate\par ??        \{\par ??            \cf1 get\cf0  \{ \cf1 return\cf0  _gstRate; \}\par ??            \cf1 set\cf0  \{ _gstRate = \cf1 value\cf0 ; \}\par ??        \}\par ??\par ??\cf1         #region\cf0  ICostCalculator Members\par ??\par ??        \cf1 public\cf0  \cf1 decimal\cf0  CalculateTotal(\cf4 Order\cf0  order)\par ??        \{\par ??            \cf1 decimal\cf0  innerTotal = _innerCalculator.CalculateTotal(order);\par ??            \cf1 if\cf0  (IsNewZealand(order))\par ??            \{\par ??                innerTotal = (innerTotal*_gstRate);\par ??            \}\par ??\par ??            \cf1 return\cf0  innerTotal;\par ??        \}\par ??\par ??\cf1         #endregion\par ??\par ??\cf0         \cf1 private\cf0  \cf1 bool\cf0  IsNewZealand(\cf4 Order\cf0  order)\par ??        \{\par ??            \cf1 return\cf0  (order.CountryCode == \cf5 "NZ"\cf0 );\par ??        \}\par ??    \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">GstCostCalcualtorDecoarator</span> : <span style="color:#2b91af;">ICostCalculator</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">readonly</span> <span style="color:#2b91af;">ICostCalculator</span> _innerCalculator;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">decimal</span> _gstRate = 1.125m;</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> GstCostCalcualtorDecoarator(<span style="color:#2b91af;">ICostCalculator</span> innerCalculator)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;">_innerCalculator = innerCalculator;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">decimal</span> GstRate</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">get</span> { <span style="color:blue;">return</span> _gstRate; }</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">set</span> { _gstRate = <span style="color:blue;">value</span>; }</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;"> #region</span> ICostCalculator Members</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">decimal</span> CalculateTotal(<span style="color:#2b91af;">Order</span> order)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">decimal</span> innerTotal = _innerCalculator.CalculateTotal(order);</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">if</span> (IsNewZealand(order))</p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;">innerTotal = (innerTotal*_gstRate);</p>
+<p style="padding-left:60px;margin:0;">}</p>
+<p style="padding-left:60px;margin:0;"></p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">return</span> innerTotal;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;"> #endregion</span></p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">bool</span> IsNewZealand(<span style="color:#2b91af;">Order</span> order)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">return</span> (order.CountryCode == <span style="color:#a31515;">"NZ"</span>);</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+</div>
+And here's the Decorator pattern.  The GstCostCalculatorDecorator class accepts another ICostCalculator, then modifies the result by adding the GST.  The DefaultCostCalculator is clueless to the GST, which is the beauty inherit in the pattern.
+
+Let's wire up the Binsor:
+<pre style="overflow:auto;border:thin solid black;font-size:x-small;">component "gst.calculator", ICostCalculator, GstCostCalculatorDecorator:
+    innerCalculator=@default.calculator
+
+component "default.calculator", ICostCalculator,DefaultCostCalculator</pre>
+We put the GST calculator first, so it's the default implementation, and run the program:
+
+<strong>Cost to deliver Order 1: 123.7500
+Cost to deliver Order 2: 10.0</strong>
+
+So, the US one hasn't changed, as expected.  Finally, let's add a shipping calculator:
+
+<!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;}??\fs20 \cf1 public\cf0  \cf1 class\cf0  \cf4 ShippingCostCalculatorDecorator\cf0  : \cf4 ICostCalculator\par ??\cf0     \{\par ??        \cf1 private\cf0  \cf1 readonly\cf0  \cf4 ICostCalculator\cf0  _innerCalculator;\par ??        \cf1 public\cf0  \cf1 decimal\cf0  ShippingCost \{ \cf1 get\cf0 ; \cf1 set\cf0 ; \}\par ??        \cf1 public\cf0  \cf1 decimal\cf0  FragileShippingPremium \{ \cf1 get\cf0 ; \cf1 set\cf0 ; \}\par ??        \cf1 public\cf0  ShippingCostCalculatorDecorator(\cf4 ICostCalculator\cf0  innerCalculator)\par ??        \{\par ??            _innerCalculator = innerCalculator;\par ??            ShippingCost = 5.0m;\par ??            FragileShippingPremium = 1.5m;\par ??        \}\par ??\par ??\cf1         #region\cf0  ICostCalculator Members\par ??        \cf1 public\cf0  \cf1 decimal\cf0  CalculateTotal(\cf4 Order\cf0  order)\par ??        \{\par ??            \cf1 decimal\cf0  innerTotal = _innerCalculator.CalculateTotal(order);\par ??            \cf1 return\cf0  innerTotal + GetShippingTotal(order);\par ??        \}\par ??\cf1         #endregion\par ??\cf0         \cf1 private\cf0  \cf1 decimal\cf0  GetShippingTotal(\cf4 Order\cf0  order)\par ??        \{\par ??            \cf1 return\cf0  order.Items.Sum(item =&gt;\par ??                                       \{\par ??                                           \cf1 var\cf0  itemShippingCost = ShippingCost*item.Quantity;\par ??                                           \cf1 if\cf0  (item.IsFragile) itemShippingCost *= FragileShippingPremium;\par ??                                           \cf1 return\cf0  itemShippingCost;\par ??                                       \});\par ??        \}\par ??    \}} -->
+<div style="border:thin solid black;background:white none repeat scroll 0 0;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">class</span> <span style="color:#2b91af;">ShippingCostCalculatorDecorator</span> : <span style="color:#2b91af;">ICostCalculator</span></p>
+<p style="margin:0;">{</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">readonly</span> <span style="color:#2b91af;">ICostCalculator</span> _innerCalculator;</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">decimal</span> ShippingCost { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">decimal</span> FragileShippingPremium { <span style="color:blue;">get</span>; <span style="color:blue;">set</span>; }</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> ShippingCostCalculatorDecorator(<span style="color:#2b91af;">ICostCalculator</span> innerCalculator)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;">_innerCalculator = innerCalculator;</p>
+<p style="padding-left:60px;margin:0;">ShippingCost = 5.0m;</p>
+<p style="padding-left:60px;margin:0;">FragileShippingPremium = 1.5m;</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;"> #region</span> ICostCalculator Members</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">public</span> <span style="color:blue;">decimal</span> CalculateTotal(<span style="color:#2b91af;">Order</span> order)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">decimal</span> innerTotal = _innerCalculator.CalculateTotal(order);</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">return</span> innerTotal + GetShippingTotal(order);</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;"> #endregion</span></p>
+<p style="padding-left:30px;margin:0;"><span style="color:blue;">private</span> <span style="color:blue;">decimal</span> GetShippingTotal(<span style="color:#2b91af;">Order</span> order)</p>
+<p style="padding-left:30px;margin:0;">{</p>
+<p style="padding-left:60px;margin:0;"><span style="color:blue;">return</span> order.Items.Sum(item =&gt;</p>
+<p style="padding-left:60px;margin:0;">{</p>
+<p style="padding-left:90px;margin:0;"><span style="color:blue;">var</span> itemShippingCost = ShippingCost*item.Quantity;</p>
+<p style="padding-left:90px;margin:0;"><span style="color:blue;">if</span> (item.IsFragile) itemShippingCost *= FragileShippingPremium;</p>
+<p style="padding-left:90px;margin:0;"><span style="color:blue;">return</span> itemShippingCost;</p>
+<p style="padding-left:60px;margin:0;">});</p>
+<p style="padding-left:30px;margin:0;">}</p>
+<p style="margin:0;">}</p>
+
+</div>
+And add our Binsor, making sure it's the first ICostCalculator implementation in the file:
+<pre style="overflow:auto;border:thin solid black;font-size:x-small;">component "shipping.calculator", ICostCalculator, ShippingCostCalculatorDecorator:
+    innerCalculator=@gst.calculator</pre>
+Run it.
+
+<strong>Cost to deliver Order 1: 211.2500
+Cost to deliver Order 2: 260.0</strong>
+
+As Alex points out, we are calculating our GST before shipping, which is kinda stoopid.  The Decorator Pattern saves our bacon here, as we can just swap things around (oh, and we change some parameters too):
+<pre style="border:thin solid black;font-size:x-small;overflow:auto;">component "gst.calculator", ICostCalculator, GstCostCalculatorDecorator:
+    innerCalculator=@gst.calculator
+    GstRate=1.20
+
+component "shipping.calculator", ICostCalculator, ShippingCostCalculatorDecorator:
+    innerCalculator=@default.calculator
+    FragileShippingPremium=0.0
+
+component "default.calculator", ICostCalculator,DefaultCostCalculator</pre>
+Run it one more time:
+
+<strong>Cost to deliver Order 1: 211.2500
+Cost to deliver Order 2: 260.0</strong>
+
+So, that's that.  Alex has some great comments in his post about other stuff you can do with the Decorator pattern, so I highly recommend you read his all the way through.
+
+Next time we'll do this stuff without decorators....
+<div><!-- {\rtf1\ansi\ansicpg\lang1024\noproof65001\uc1 \deff0{\fonttbl{\f0\fnil\fcharset0\fprq1 Courier New;}}{\colortbl;??\red0\green0\blue255;\red255\green255\blue255;\red0\green0\blue0;\red43\green145\blue175;}??\fs20 \cf1 public\cf0  \cf1 class\cf0  \cf4 Order\par ??\cf0     \{\par ??        \cf1 private\cf0  \cf1 readonly\cf0  \cf4 List\cf0 &lt;\cf4 OrderItem\cf0 &gt; _items = \cf1 new\cf0  \cf4 List\cf0 &lt;\cf4 OrderItem\cf0 &gt;();\par ??        \cf1 public\cf0  \cf4 List\cf0 &lt;\cf4 OrderItem\cf0 &gt; Items\par ??        \{\par ??            \cf1 get\cf0  \{ \cf1 return\cf0  _items; \}\par ??        \}\par ??        \cf1 public\cf0  \cf1 string\cf0  CountryCode \{ \cf1 get\cf0 ; \cf1 set\cf0 ; \}\par ??    \}\par ??\par ??    \cf1 public\cf0  \cf1 class\cf0  \cf4 OrderItem\par ??\cf0     \{\par ??        \cf1 public\cf0  OrderItem(\cf1 string\cf0  name, \cf1 int\cf0  quantity, \cf1 decimal\cf0  costPerItem, \cf1 bool\cf0  isFragile)\par ??        \{\par ??            Name = name;\par ??            Quantity = quantity;\par ??            CostPerItem = costPerItem;\par ??            IsFragile = isFragile;\par ??        \}\par ??        \cf1 public\cf0  \cf1 bool\cf0  IsFragile \{ \cf1 get\cf0 ; \cf1 set\cf0 ; \}\par ??        \cf1 public\cf0  \cf1 int\cf0  Quantity \{ \cf1 get\cf0 ; \cf1 set\cf0 ; \}\par ??        \cf1 public\cf0  \cf1 decimal\cf0  CostPerItem \{ \cf1 get\cf0 ; \cf1 set\cf0 ; \}\par ??        \cf1 public\cf0  \cf1 string\cf0  Name \{ \cf1 get\cf0 ; \cf1 set\cf0 ; \}\par ??    \}} --></div>
+<div class="zemanta-pixie" style="margin-top:10px;height:15px;"><a class="zemanta-pixie-a" title="Zemified by Zemanta" href="http://reblog.zemanta.com/zemified/04592086-90e5-4bbe-a232-eed6ad71b121/"><img class="zemanta-pixie-img" style="border:medium none;float:right;" src="http://img.zemanta.com/reblog_e.png?x-id=04592086-90e5-4bbe-a232-eed6ad71b121" alt="Reblog this post [with Zemanta]" /></a></div>

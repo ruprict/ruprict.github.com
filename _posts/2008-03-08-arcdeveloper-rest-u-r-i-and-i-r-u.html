@@ -1,0 +1,49 @@
+--- 
+layout: post
+title: "ArcDeveloper REST: U R I and I R U"
+tags: 
+- ArcDeveloper
+- REST
+status: publish
+type: post
+published: true
+meta: {}
+
+---
+As I promised in my (first and) previous post, I am gonna quickly go over the very simple architecture of the ArcDeveloper REST API. This post covers how we expose our REST endpoint(s).
+
+At a high level, we wanted to expose a single <a href="http://en.wikipedia.org/wiki/Representational_State_Transfer" target="_blank">REST</a> endpoint that allowed the caller to specify the "service", "layer", and query parameters in order to get geographic features returned in a format, which is also specified by the caller.  So, attempting to be as RESTy as possible, the URI looks like:
+<pre style="font-size:small;"> http://&lt;yourServer&gt;/rest.svc/service/layer/3?format=geojson</pre>
+It's clear and easy and other URI endpoints are easy to deduce.  Yup, we are RESTing we the best of them.  Our main endpoint is the rest.svc, which is WCF's way of exposing a service endpoint.  The first question, then, we had to answer was how we would handle the URI routing.  If the map services are registered dynamically (using Castle Windsor, which is arguably the greatest piece of code ever written.  Ever.  Not that I am prone to hyperbole.  Oh, I'll cover the configuration in the next post) then we have to dissect the various pieces of the URI to:
+<ol>
+	<li>Get a hold of the service requested.</li>
+	<li>Query the right layer</li>
+	<li>Use the right query parameters.</li>
+	<li>Grab the right formatter.</li>
+</ol>
+Luckily for us, .NET 3.5 had recently been released, incorporating some cool changes in <a href="http://msdn2.microsoft.com/en-us/library/ms731082.aspx" target="_blank">WCF</a>, the coolest one being the URITemplate (good background <a href="http://msdn2.microsoft.com/en-us/magazine/cc135976.aspx" target="_blank">here</a>).  The URITemplate allows us to define URI templates (duh) and map them to service methods (or OperationContracts, in WCF-speak) complete with the mapping of parameters of the method.  Let's see how we are using this now:
+<div style="overflow:scroll;background:white none repeat scroll 0 50%;font-family:Courier New;font-size:8pt;color:black;">
+<p style="margin:0;"> [<span style="color:#2b91af;">OperationContract</span>]</p>
+<p style="margin:0;">        [<span style="color:#2b91af;">WebGet</span>(UriTemplate=<span style="color:#a31515;">"{serviceName}/{featureType}/{featureId}?g={geom}"</span>,ResponseFormat=<span style="color:#2b91af;">WebMessageFormat</span>.Json)]</p>
+<p style="margin:0;">        <span style="color:#2b91af;">Stream</span> GetSingleFeatureJSON(<span style="color:blue;">string</span> serviceName, <span style="color:blue;">string</span> featureType, <span style="color:blue;">string</span> featureId, <span style="color:blue;">bool</span> geom);</p>
+</div>
+You can see how the dealies in the "{}" get mapped to the method parameters.  Just to be complete, {serviceName} maps to the serviceName parameter, etc.  The "geom" parameter specifies whether or not you want all the coordinates returned, because sometimes that can be a LOT of data.  We also specify the response format here and the HTTP verb (WebGet== HTTP Get.  I'll give you 3 guesses how you specify HTTP POST.  Wrong. It's <a href="http://msdn2.microsoft.com/en-us/library/system.servicemodel.web.webinvokeattribute.aspx" target="_blank">WebInvoke</a>.)
+
+So, I know what you are saying.  "WTF?  You have hard-coded the format INTO THE BLOODY METHOD NAME!   I am not reading any more of this tripe."  Well, that's your prerogative (Tangent:  I had NO idea that was how to spell that word.  No wonder Bobby Brown is on drugs) but know that I am adhering to the Last Responsible Minute (LRM) doctrine.  We only need (geo)JSON right now, meaning, no one has written any other formatters.  Once we have another format, we'll put in a "format" parameter, remove the ResponseFormat and life will be all good.  Weak excuse, you say?  Maybe.  Let's, uh, move on.
+
+The URIs the project currently supports are:
+<div style="border:thin dotted black;background:#cccccc none repeat scroll 0 50%;overflow:scroll;">
+<pre>  http://yourserver/rest.svc/services</pre>
+</div>
+Will return information about all of the services that are available to be queried.
+<div style="border:thin dotted black;background:#cccccc none repeat scroll 0 50%;overflow:scroll;">
+<pre>  http://yourserver/rest.svc/serviceName/layerName/OBJECTID?g=true</pre>
+</div>
+Will return the feature corresponding to the OBJECTID value from the layer specified by "layerName" in the service configured as "serviceName".
+<div style="border:thin dotted black;background:#cccccc none repeat scroll 0 50%;overflow:scroll;">
+<pre>  http://yourserver/rest.svc/serviceName/layerName?query=whereClause&amp;bbox=xmin,ymin,xmax,ymax&amp;g=true</pre>
+</div>
+Will query layer named "layerName" in service configured as "serviceName" using the value in "whereClause" (like height&gt;100 or streetname='Main'  --  don't forget to <a href="http://www.asciitable.com/" target="_blank">escape</a> your querystrings....) inside the bounding box specified by xmin, ymin and xmax, ymax.
+
+As always, g=true returns the full coordinates of each geometry.  Also, the serviceName corresponds to the name given in the Windsor configuration, NOT the name of the ArcGIS Server service.
+In the next post (hopefully) I'll cover the service and its configuration, showing you how we leverage the total kick-assness of Windsor to make life easy.

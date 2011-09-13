@@ -1,0 +1,91 @@
+--- 
+layout: post
+title: ArcGIS Server 9.3 REST API First Looks, Part 1
+tags: 
+- ArcDeveloper
+- ArcGIS Server
+- JSON
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1211627483"
+  _oembed_43d2baebeb5a1d11345e531ed7e9f0f4: "{{unknown}}"
+  _oembed_7be47e26ee69035b27530f0ea2a59e2c: "{{unknown}}"
+  _oembed_7dbd16b04f7b36de1bf8bae4a4424622: "{{unknown}}"
+  _oembed_6e9d6b6c26c54cdb27eaa61ab98340e3: "{{unknown}}"
+  _oembed_def0a2783a01c3660ea30f4131abfd5b: "{{unknown}}"
+  _oembed_118b3fc0c9839d4dd8a3ab732ea5c7b0: "{{unknown}}"
+  _oembed_647b97409601ed96d07727beb98389ab: "{{unknown}}"
+  _oembed_cb3f6d308581431230548ca8955303c4: "{{unknown}}"
+  _oembed_7ca76b730f164e94e96418b66b61913d: "{{unknown}}"
+  _oembed_1eb4d1f2cd0bcadba98e5f032085c8f9: "{{unknown}}"
+  _oembed_dcff3c13835ec13cdce6f463877366c2: "{{unknown}}"
+  _oembed_5d67b769d8962d283381afda08286bb1: "{{unknown}}"
+  _oembed_c6f642fdf6d491cb022b378b2b7c37b8: "{{unknown}}"
+  _oembed_66c9aa288a466a8e5d338ecadf4ed5af: "{{unknown}}"
+  _oembed_bf7332ea86882a27ef1d519aa09de798: "{{unknown}}"
+  _oembed_5b7dc7925540c0f82803ffb952707163: "{{unknown}}"
+  _oembed_e960fc9f7cf848b9be5aecaf7c112621: "{{unknown}}"
+  _oembed_6fd89fa66c6e7d4ab05f6dcc5e98eca7: "{{unknown}}"
+  _oembed_8c9325197286b9017939c6fda5053ee8: "{{unknown}}"
+  _oembed_e103848deeac26eca7120bf9171c6aa8: "{{unknown}}"
+  _oembed_6652deab31b5031016754798ca386e4a: "{{unknown}}"
+  _oembed_14d17a9b053eee15a5445745632b7894: "{{unknown}}"
+  _oembed_99de51c4db13f70f21cf5db2513665aa: "{{unknown}}"
+  _oembed_baeb249d7952e2c0abb6bdac8715e21d: "{{unknown}}"
+  _oembed_8e63789eba120505bd50535c0caf3c8c: "{{unknown}}"
+  _oembed_981aaef016eb2f59fd6e7e590f816a69: "{{unknown}}"
+  _oembed_fb4a00f4ad8f4ced0fad14ec2222493f: "{{unknown}}"
+  _oembed_20b70cd94651c13057fba4b0da6e0383: "{{unknown}}"
+  _oembed_9b40642a7375f87eea8be702e60e63a7: "{{unknown}}"
+  _oembed_7d2734cb165ff4d7a93b5cf9622b2aee: "{{unknown}}"
+  _oembed_c2f1ff43db17594ef446d6cb12b37a3e: "{{unknown}}"
+  _oembed_bc0ab7637c92575bdd8c0cb1376eeb85: "{{unknown}}"
+---
+<div class="zemanta-img" style="float:right;margin:1em;"><a href="http://en.wikipedia.org/wiki/Image:Esri-logo.png" target="_blank"><img style="border:medium none;display:block;" src="http://upload.wikimedia.org/wikipedia/en/3/3f/Esri-logo.png" alt="Esri-logo" /></a>Image via <a href="http://en.wikipedia.org/wiki/Image:Esri-logo.png" target="_blank">Wikipedia</a>
+
+</div>
+You may (or may not) know that I am one of the authors of the <a title="One of my ArcDev posts" href="http://ruprict.wordpress.com/2008/03/11/arcdeveloper-rest-windsor-brings-the-party-that-rocks-the-body/" target="_blank">ArcDeveloper REST API</a>, which is an <a class="zem_slink" title="Open source" rel="wikipedia" href="http://en.wikipedia.org/wiki/Open_source" target="_blank">open source</a> <a class="zem_slink" title="Representational State Transfer" rel="wikipedia" href="http://en.wikipedia.org/wiki/Representational_State_Transfer" target="_blank">REST</a> <a class="zem_slink" title="Application programming interface" rel="wikipedia" href="http://en.wikipedia.org/wiki/Application_programming_interface" target="_blank">API</a> for <a class="zem_slink" title="ArcGIS Server" rel="wikipedia" href="http://en.wikipedia.org/wiki/ArcGIS_Server" target="_blank">ArcGIS Server</a> that can be used against ArcGIS Server (AGS) 9.2, right now, free to all comers, no waiting, etc.  If you know that, you probably know that <a class="zem_slink" title="ESRI" rel="homepage" href="http://www.esri.com/" target="_blank">ESRI</a> is releasing it's own REST API for AGS at 9.3, due out later this year.  So, I thought I'd take a few posts to show you how the REST API (in beta) is looking.  For the impatient, it looks great.  For others that may not have the beta, read on.
+
+So, first off, we are just gonna check out the very basics of the REST API.  When you install 9.3, there is no real indication of anything all that different.  The AGS Service Properties dialogs look (basically) the same, except for some (hugely exciting, but beyond the scope of this article) changes to the Caching tab.  The real excitement comes when you start messing around with <a class="zem_slink" title="Uniform Resource Locator" rel="wikipedia" href="http://en.wikipedia.org/wiki/Uniform_Resource_Locator" target="_blank">URLs</a> against your map server.  BTW, I am using <a href="http://www.fiddler2.com" target="_blank">Fiddler2</a> with the <a href="http://www.codeplex.com/JsonViewer" target="_blank">JSON Viewer</a> plug-in to send requests to the server and look at the results.
+
+AGS 9.0 and later have always exposed a <a class="zem_slink" title="SOAP" rel="wikipedia" href="http://en.wikipedia.org/wiki/SOAP" target="_blank">SOAP</a> endpoint for each service it publishes as well as service catalog.  There is a whole SOAP API, which is my preferred method to interact with AGS services, and the URL to the SOAP service catalog looks like:
+
+http://server/arcgis/services
+
+Following this pattern, the REST API brings along a similar service catalog endpoint:
+
+http://server/arcgis/rest/services
+
+The new-kid-on-the-block REST URL is even cooler, though, as it formats the results into a cool "ArcGIS Service Explorer" that looks like:
+
+<a href="http://ruprict.files.wordpress.com/2008/05/croppercapture2.png"><img class="alignnone size-medium wp-image-17" src="http://ruprict.files.wordpress.com/2008/05/croppercapture2.png?w=300" alt="ArcGIS Services Explorer at 9.3" width="300" height="150" /></a>
+
+Which allows you to look at metadata about your services, view them in <a class="zem_slink" title="Google Earth" rel="homepage" href="http://earth.google.com/" target="_blank">Google Earth</a> (how cool is that?), ArcMap, ArcGIS Explorer, or the new ArcGIS Javascript API (a subject of posts to come).  Also, you can drill-down into your service and get layer info, spatial reference, unit info, and tiling information.  In fact, on the tiling information, you can actually LOOK at some of the tiles.  Other information includes supported operations that you can execute within the Explorer, like Export Map or Identify.  Here's a picture of the service page:
+
+<a href="http://ruprict.files.wordpress.com/2008/05/croppercapture3.png"><img class="alignnone size-medium wp-image-18" src="http://ruprict.files.wordpress.com/2008/05/croppercapture3.png?w=300" alt="Tons of info right out of the box." width="300" height="287" /></a>
+
+Another item the Service page has is a "Supported Interfaces" section, which I would call supported formats.   The ones listed out of the box are REST and SOAP.  Clicking on the REST link will give you all (well, most of) the information just mentioned, but in <a class="zem_slink" title="JSON" rel="wikipedia" href="http://en.wikipedia.org/wiki/JSON" target="_blank">JSON</a> format .   Here, lemme show you:
+
+<a href="http://ruprict.files.wordpress.com/2008/05/croppercapture4.png"><img class="alignnone size-medium wp-image-19" src="http://ruprict.files.wordpress.com/2008/05/croppercapture4.png?w=300" alt="Fiddler (w/JSON Viewer) display of REST GET Request of AGS" width="300" height="168" /></a>
+
+The only difference between the URL to get to the cool HTML Services Explorer page and the URL that spits out JSON is the addition of a 'f' (for 'format') querystring parameter, like so:
+
+http://server/arcgis/rest/services/ServiceName/MapServer?f=json
+
+MMMMM....now, THAT's some good REST.
+
+There is similar love for supported operations, allowing you to crank out a quick image or perform a Find and look at the results.   Also, the (impressively comprehensive) API reference is linked on the Services Explorer pages, which, oh by-the-way, takes you <a title="REST API docs" href="http://esi-gegvm93/arcgis/SDK/REST/index.html" target="_blank">here</a>.
+
+Finally, the last thing I want to cover in this post is the REST admin inteface.  If you go to the following URL in your browser:
+
+http://server/arcgis/rest/admin
+
+you'll be hit with a login screen for the ArcGIS REST API Admin application.  It's pretty sparse right now, not even meriting a screen shot.  Currently, you can use the admin site to tell AGS when to recycle the cached service responses and to turn on the REST Services Catalog.  Now, that second option was nowhere to be found in my admin app, but the docs assure me it's there.
+
+So far, the only disappointment I have had is that ESRI has chosen not to use GeoJSON as their format to return features in (or, for that matter, even as an option).  I don't profess to know why, but I'll try to float that to one of my contacts on the mother ship soon.
+
+Summing up, the AGS REST API looks great before you even show a map on a site.  I am hoping to go that in future posts.
+<div id="zemanta-pixie" style="width:100%;margin:5px 0;"><a id="zemanta-pixie-a" title="Zemified by Zemanta" href="http://www.zemanta.com/"><img style="border:medium none;float:right;" src="http://img.zemanta.com/pixie.png?x-id=06e8c9db-7779-401b-bbea-6a36ada099ee" alt="" /></a></div>

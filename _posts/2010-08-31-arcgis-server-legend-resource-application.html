@@ -1,0 +1,64 @@
+--- 
+layout: post
+title: ArcGIS Server Legend Resource Application
+tags: 
+- ArcDeveloper
+- ArcGIS Server
+- Ruby
+status: publish
+type: post
+published: true
+meta: 
+  _edit_last: "3307217"
+  _edit_lock: "1283262640"
+  jabber_published: "1283195396"
+  _wp_old_slug: ""
+---
+Building on my<a href="http://ruprict.net/2010/08/20/create-legend-images-from-arcgis-server-with-ruby/" target="_blank"> last post</a>, I wanted to create a RESTful app that serves up legends from ArcGIS Server.  Ideally, this app would not need any configuration.  I thought this was very doable, since I could just put the URL information for the map service into the URL for the legend resource service by my new RESTful app.  All in all, this was much easier than even I predicted.  Oh, and I have to thank Colin Casey (again) for refactoring my code to look more Ruby-way like.
+
+At first, I thought of using a Rails app for this, which I did stand up and get running.  However, it seemed like way too much for just a simple app.  There is no database, no real views, and not much that required all the conventions that Rails uses.  I have been hearing tons about <a href="http://www.sinatrarb.com/" target="_blank">Sinatra </a>(including a running joke that it's where experienced Rails developers eventually land) and how lightweight it is.  And, it is VERY lightweight.  I am not going to post any examples of Sinatra here, but a rudimentary scan of the Sinatra home page is enough to show that it's not a lot of weight.  So, I selected Sinatra and had the app working in a  few hours (most of which were me struggling with my RubyNoob issues)  The result is <a href="http://github.com/ruprict/legend_resource" target="_blank">legend_resource</a> and is posted on github for your criticism and mockery.
+<h2>Using LegendResource</h2>
+It's very easy to get legend_resource up and running.
+<ol>
+	<li>Pull down the code (git clone git@github.com:ruprict/legend_resource.git)</li>
+	<li>Install Bundler, if it isn't already (gem install bundler --pre)</li>
+	<li>You might have to install RMagick, if you have not already.  As I alluded to in my last post, you should go the the RMagick site and figure out the best way to install it for your operating system.  (#copout)</li>
+	<li>type 'bundle install' from the git repo root.   This should install all the necessary gems.</li>
+	<li>type 'rackup'. This should fire up the application on port 9292.</li>
+</ol>
+Now that the app is up and running, you can generate a legend for any map service.  For example, if you want a legend for the USA_Percent_Male map service in the Demographics folder on server.arcgisonline.com, click on this link:
+
+<a href="http://localhost:9292/legend/server.arcgisonline.com/Demographics/USA_Percent_Male" target="_blank">http://localhost:9292/legend/server.arcgisonline.com/Demographics/USA_Percent_Male</a>
+
+Or create an HTML page with an img tag and set that link to the src.  Like this,
+
+<img class="alignnone" title="Legend" src="http://agslegend.heroku.com/legend/server.arcgisonline.com/Demographics/USA_Percent_Male" alt="Neat, eh?" width="250" height="475" />
+
+That's it.  Neat, huh?
+
+The URL scheme is pretty simple:  http://&lt;webserver&gt;/legend/&lt;mapserver&gt;/&lt;mapservicepath&gt;, where
+<ul>
+	<li>webserver is whereever the legend_resource app is currently hosted.</li>
+	<li>mapserver is your ArcGIS server</li>
+	<li>mapservicepath is the path to the service on mapserver.  This works for services in the root or in a folder.  The link above was in a folder, for example.</li>
+</ul>
+<h2>Config Options</h2>
+The configuration options for legend_resource are few right now.  Out-of-the-github, I want it to just work, and it does.   It writes the files to the local file system if you don't tell it otherwise.  Right now, the only other option is a Google Storage for Developers backend that exists because I received my invite to it this morning.  If you want to use that, you have to:
+
+1) Change the gstore.yaml file to add your access_key and secret.
+
+2) Comment out the line in config.ru that sets up the GStoreLegend as the file handler.
+
+[sourcecode language="ruby"]
+run LegendResource
+# Uncomment this line to use Google Storage (don't forget to change the gstore.yml file)')
+#LegendResource.set :filehandler, GStoreLegend
+[/sourcecode]
+
+I did that for a Heroku app that I am hosting at http://agslegend.heroku.com (the image above is from said Heroku app) that you are free to use to crank out a few legends.  Just bear in mind that the map service will have to be exposed to the web for my Heroku app to see it.
+
+I hope someone else finds this useful.  It was a ton of fun to make and I learned a lot about ruby in the process.  I realize that my code is pretty noobish from the Ruby standpoint, so feel free to fork the repo, refactor, and issue pull requests.  That's how I learn.  Also, if you'd like to see other options for the legends, hit me on github or leave a comment.
+
+Happy Legending!
+
+UPDATE:  One thing I don't think I made clear is that the REST interface for this service only handles GET and DELETE.  If you HTTP GET to the url, it will either create or return the legend.  If you HTTP DELETE to it, it deletes the legend, so, the next GET will create it anew.
